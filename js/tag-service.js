@@ -1,15 +1,16 @@
 // 标签管理服务
-import { supabase } from './supabase-client.js';
-import { showToast, showModal, hideModal } from './auth.js';
+// 使用全局对象而不是import语句
+// 直接使用window.supabaseClient，避免重复声明
+// 直接使用window.authUtils，避免重复声明
 
 // 获取所有标签（包含关联单词数量）
-export async function getTags() {
+async function getTags() {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 获取用户的所有标签
-        const { data: tags, error: tagsError } = await supabase
+        const { data: tags, error: tagsError } = await window.supabaseClient
             .from('tags')
             .select('*')
             .eq('user_id', user.id)
@@ -20,7 +21,7 @@ export async function getTags() {
         // 获取每个标签关联的单词数量
         const tagsWithCount = await Promise.all(
             tags.map(async (tag) => {
-                const { count, error: countError } = await supabase
+                const { count, error: countError } = await window.supabaseClient
                     .from('word_tags')
                     .select('*', { count: 'exact', head: true })
                     .eq('tag_id', tag.tag_id);
@@ -37,31 +38,31 @@ export async function getTags() {
         return tagsWithCount;
     } catch (error) {
         console.error('Get tags error:', error);
-        showToast('获取标签失败', 'error');
+        window.authUtils.showToast?.('获取标签失败', 'error');
         return [];
     }
 }
 
 // 创建标签
-export async function createTag(tagName) {
+async function createTag(tagName) {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 检查标签是否已存在
-        const { data: existingTags } = await supabase
+        const { data: existingTags } = await window.supabaseClient
             .from('tags')
             .select('tag_id')
             .eq('user_id', user.id)
             .eq('tag_name', tagName.trim());
 
         if (existingTags && existingTags.length > 0) {
-            showToast('标签名称已存在', 'error');
+            window.authUtils.showToast?.('标签名称已存在', 'error');
             return { success: false };
         }
 
         // 创建新标签
-        const { data, error } = await supabase
+        const { data, error } = await window.supabaseClient
             .from('tags')
             .insert({
                 user_id: user.id,
@@ -72,23 +73,23 @@ export async function createTag(tagName) {
 
         if (error) throw error;
 
-        showToast('标签创建成功', 'success');
+        window.authUtils.showToast?.('标签创建成功', 'success');
         return { success: true, tag: data };
     } catch (error) {
         console.error('Create tag error:', error);
-        showToast(error.message || '创建标签失败', 'error');
+        window.authUtils.showToast?.(error.message || '创建标签失败', 'error');
         return { success: false, error };
     }
 }
 
 // 更新标签
-export async function updateTag(tagId, newName) {
+async function updateTag(tagId, newName) {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 检查新名称是否与其他标签重复
-        const { data: existingTags } = await supabase
+        const { data: existingTags } = await window.supabaseClient
             .from('tags')
             .select('tag_id')
             .eq('user_id', user.id)
@@ -96,12 +97,12 @@ export async function updateTag(tagId, newName) {
             .neq('tag_id', tagId);
 
         if (existingTags && existingTags.length > 0) {
-            showToast('标签名称已存在', 'error');
+            window.authUtils.showToast?.('标签名称已存在', 'error');
             return { success: false };
         }
 
         // 更新标签
-        const { data, error } = await supabase
+        const { data, error } = await window.supabaseClient
             .from('tags')
             .update({ tag_name: newName.trim() })
             .eq('tag_id', tagId)
@@ -111,23 +112,23 @@ export async function updateTag(tagId, newName) {
 
         if (error) throw error;
 
-        showToast('标签更新成功', 'success');
+        window.authUtils.showToast?.('标签更新成功', 'success');
         return { success: true, tag: data };
     } catch (error) {
         console.error('Update tag error:', error);
-        showToast(error.message || '更新标签失败', 'error');
+        window.authUtils.showToast?.(error.message || '更新标签失败', 'error');
         return { success: false, error };
     }
 }
 
 // 删除标签
-export async function deleteTag(tagId) {
+async function deleteTag(tagId) {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 获取关联的单词数量
-        const { count } = await supabase
+        const { count } = await window.supabaseClient
             .from('word_tags')
             .select('*', { count: 'exact', head: true })
             .eq('tag_id', tagId);
@@ -137,19 +138,19 @@ export async function deleteTag(tagId) {
             const confirmMessage = `该标签关联${count || 0}个单词，删除后单词将移除该标签，是否继续？`;
             if (confirm(confirmMessage)) {
                 // 删除标签（关联关系会通过CASCADE自动删除）
-                supabase
+                window.supabaseClient
                     .from('tags')
                     .delete()
                     .eq('tag_id', tagId)
                     .eq('user_id', user.id)
                     .then(({ error }) => {
                         if (error) throw error;
-                        showToast('标签删除成功', 'success');
+                        window.authUtils.showToast?.('标签删除成功', 'success');
                         resolve({ success: true });
                     })
                     .catch((error) => {
                         console.error('Delete tag error:', error);
-                        showToast(error.message || '删除标签失败', 'error');
+                        window.authUtils.showToast?.(error.message || '删除标签失败', 'error');
                         resolve({ success: false, error });
                     });
             } else {
@@ -158,19 +159,19 @@ export async function deleteTag(tagId) {
         });
     } catch (error) {
         console.error('Delete tag error:', error);
-        showToast(error.message || '删除标签失败', 'error');
+        window.authUtils.showToast?.(error.message || '删除标签失败', 'error');
         return { success: false, error };
     }
 }
 
 // 显示标签管理模态框
-export function showTagModal() {
+function showTagModal() {
     showModal('tagModal');
     loadTagList();
 }
 
 // 加载标签列表
-export async function loadTagList() {
+async function loadTagList() {
     const tags = await getTags();
     const tbody = document.getElementById('tagTableBody');
     
@@ -223,7 +224,7 @@ export async function loadTagList() {
             const newName = input.value.trim();
             
             if (!newName) {
-                showToast('标签名称不能为空', 'error');
+                window.authUtils.showToast?.('标签名称不能为空', 'error');
                 return;
             }
 
@@ -261,7 +262,7 @@ function escapeHtml(text) {
 }
 
 // 绑定标签管理事件
-export function bindTagEvents() {
+function bindTagEvents() {
     // 添加标签按钮
     const addTagBtn = document.getElementById('addTagBtn');
     if (addTagBtn) {
@@ -270,7 +271,7 @@ export function bindTagEvents() {
             const tagName = input.value.trim();
             
             if (!tagName) {
-                showToast('请输入标签名称', 'error');
+                window.authUtils.showToast?.('请输入标签名称', 'error');
                 return;
             }
 
@@ -300,4 +301,15 @@ export function bindTagEvents() {
         });
     }
 }
+
+// 将所有函数挂载到全局对象
+window.tagService = {
+    getTags,
+    createTag,
+    updateTag,
+    deleteTag,
+    showTagModal,
+    loadTagList,
+    bindTagEvents
+};
 

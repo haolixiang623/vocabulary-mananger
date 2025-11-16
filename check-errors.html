@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>错误检查工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .check-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        h1 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>项目错误检查工具</h1>
+    <div id="checkResults"></div>
+
+    <script>
+        const results = [];
+        
+        // 检查1: Supabase CDN
+        function checkSupabase() {
+            if (typeof window.supabase !== 'undefined') {
+                results.push({ type: 'success', message: '✓ Supabase CDN已加载' });
+            } else {
+                results.push({ type: 'error', message: '✗ Supabase CDN未加载' });
+            }
+        }
+
+        // 检查2: 配置文件
+        async function checkConfig() {
+            try {
+                const module = await import('./js/config.js');
+                if (module.CONFIG && module.CONFIG.SUPABASE_URL && module.CONFIG.SUPABASE_URL !== 'your-supabase-url') {
+                    results.push({ type: 'success', message: '✓ 配置文件已正确配置' });
+                } else {
+                    results.push({ type: 'warning', message: '⚠ 配置文件需要更新Supabase URL和Key' });
+                }
+            } catch (error) {
+                results.push({ type: 'error', message: '✗ 无法加载配置文件: ' + error.message });
+            }
+        }
+
+        // 检查3: 关键文件
+        async function checkFiles() {
+            const files = [
+                'js/config.js',
+                'js/supabase-client.js',
+                'js/auth.js',
+                'js/word-service.js',
+                'js/tag-service.js',
+                'js/export-service.js',
+                'js/app.js',
+                'css/style.css'
+            ];
+
+            for (const file of files) {
+                try {
+                    const response = await fetch(file);
+                    if (response.ok) {
+                        results.push({ type: 'success', message: `✓ ${file} 存在` });
+                    } else {
+                        results.push({ type: 'error', message: `✗ ${file} 不存在或无法访问` });
+                    }
+                } catch (error) {
+                    results.push({ type: 'error', message: `✗ ${file} 检查失败: ${error.message}` });
+                }
+            }
+        }
+
+        // 检查4: HTML元素
+        function checkHTMLElements() {
+            const requiredElements = [
+                'loginModal',
+                'registerModal',
+                'appContainer',
+                'wordTableBody',
+                'tagSelector',
+                'addWordBtn',
+                'manageTagsBtn',
+                'exportExcelBtn'
+            ];
+
+            requiredElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    results.push({ type: 'success', message: `✓ HTML元素 #${id} 存在` });
+                } else {
+                    results.push({ type: 'error', message: `✗ HTML元素 #${id} 不存在` });
+                }
+            });
+        }
+
+        // 检查5: 模块导入
+        async function checkModules() {
+            try {
+                const supabaseClient = await import('./js/supabase-client.js');
+                if (supabaseClient.supabase) {
+                    results.push({ type: 'success', message: '✓ Supabase客户端模块可加载' });
+                } else {
+                    results.push({ type: 'error', message: '✗ Supabase客户端模块加载失败' });
+                }
+            } catch (error) {
+                results.push({ type: 'error', message: '✗ Supabase客户端模块错误: ' + error.message });
+            }
+        }
+
+        // 运行所有检查
+        async function runChecks() {
+            results.length = 0;
+            
+            checkSupabase();
+            await checkConfig();
+            await checkFiles();
+            checkHTMLElements();
+            await checkModules();
+
+            // 显示结果
+            const resultsDiv = document.getElementById('checkResults');
+            resultsDiv.innerHTML = results.map(r => 
+                `<div class="check-item ${r.type}">${r.message}</div>`
+            ).join('');
+
+            const errorCount = results.filter(r => r.type === 'error').length;
+            const warningCount = results.filter(r => r.type === 'warning').length;
+            const successCount = results.filter(r => r.type === 'success').length;
+
+            resultsDiv.innerHTML += `
+                <div style="margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 4px;">
+                    <h3>检查总结</h3>
+                    <p>成功: ${successCount} | 警告: ${warningCount} | 错误: ${errorCount}</p>
+                </div>
+            `;
+        }
+
+        // 页面加载后运行检查
+        window.addEventListener('load', () => {
+            setTimeout(runChecks, 500);
+        });
+    </script>
+</body>
+</html>
+

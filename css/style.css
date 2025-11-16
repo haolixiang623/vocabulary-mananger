@@ -160,6 +160,11 @@ body {
     background-color: #c0392b;
 }
 
+.btn-small {
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+}
+
 /* 单词列表 */
 .word-list-container {
     background-color: #fff;
@@ -376,6 +381,17 @@ body {
 .tag-actions {
     display: flex;
     gap: 0.5rem;
+}
+
+.tag-name-display {
+    display: inline-block;
+}
+
+.tag-name-edit {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
 }
 
 /* Toast提示 */

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单诊断</title>
+</head>
+<body>
+    <h1>逐个加载JS文件诊断</h1>
+    <div id="status"></div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        
+        function log(message) {
+            statusDiv.innerHTML += message + '<br>';
+            console.log(message);
+        }
+        
+        // 逐个加载JS文件，查看是哪个文件导致错误
+        const files = [
+            'js/config.js',
+            'js/supabase-client.js',
+            'js/mcp-client.js',
+            'js/auth.js',
+            'js/tag-service.js',
+            'js/word-service.js',
+            'js/export-service.js',
+            'js/app.js'
+        ];
+        
+        let currentIndex = 0;
+        
+        function loadNextFile() {
+            if (currentIndex >= files.length) {
+                log('✅ 所有文件加载完成');
+                return;
+            }
+            
+            const file = files[currentIndex];
+            log(`🔄 正在加载: ${file}`);
+            
+            const script = document.createElement('script');
+            script.src = file;
+            
+            script.onload = function() {
+                log(`✅ 成功加载: ${file}`);
+                currentIndex++;
+                loadNextFile();
+            };
+            
+            script.onerror = function() {
+                log(`❌ 加载失败: ${file}`);
+            };
+            
+            document.body.appendChild(script);
+        }
+        
+        // 开始加载
+        loadNextFile();
+    </script>
+</body>
+</html>

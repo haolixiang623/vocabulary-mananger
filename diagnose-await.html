@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Await错误诊断</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .error { color: red; }
+        .success { color: green; }
+        .test { margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>Await错误诊断工具</h1>
+    <div id="results"></div>
+
+    <script>
+        // 尝试加载每个JS文件，逐个检查是否包含await错误
+        const files = [
+            'js/config.js',
+            'js/supabase-client.js',
+            'js/mcp-client.js',
+            'js/auth.js',
+            'js/tag-service.js',
+            'js/word-service.js',
+            'js/export-service.js',
+            'js/app.js'
+        ];
+
+        const resultsDiv = document.getElementById('results');
+
+        // 逐个加载文件并报告结果
+        async function diagnoseFiles() {
+            for (const file of files) {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test';
+                testDiv.innerHTML = `<h3>正在测试: ${file}</h3>`;
+                resultsDiv.appendChild(testDiv);
+
+                try {
+                    // 获取文件内容
+                    const response = await fetch(file);
+                    const content = await response.text();
+                    
+                    // 简单检测文件中是否有顶层await
+                    const hasTopLevelAwait = /^(?:\s*|\/\/[^\n]*|\/\*[\s\S]*?\*\/)*\bawait\b/i.test(content);
+                    
+                    if (hasTopLevelAwait) {
+                        testDiv.innerHTML += `<p class="error">检测到可能的顶层await: ${file}</p>`;
+                    } else {
+                        testDiv.innerHTML += `<p class="success">没有检测到顶层await: ${file}</p>`;
+                    }
+                    
+                    // 显示文件的开始部分，帮助诊断
+                    const startContent = content.substring(0, 200);
+                    testDiv.innerHTML += `<details><summary>文件前200字符</summary><pre>${startContent}...</pre></details>`;
+                    
+                } catch (error) {
+                    testDiv.innerHTML += `<p class="error">加载文件失败: ${error.message}</p>`;
+                }
+            }
+        }
+
+        // 立即执行诊断
+        (async function() {
+            await diagnoseFiles();
+        })();
+    </script>
+</body>
+</html>

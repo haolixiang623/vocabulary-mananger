@@ -1,13 +1,12 @@
-// MCP客户端实现
+// MCP客户端实现 - 修改为全局变量方式，支持直接文件访问
 // 注意：这是一个基础实现，实际使用时需要根据MCP服务器的具体API进行调整
-import { CONFIG } from './config.js';
-import { supabase } from './supabase-client.js';
+// 从全局对象获取配置和Supabase客户端
 
 class MCPClient {
     constructor() {
         // MCP客户端初始化
         // 如果使用MCP服务器，可以在这里配置连接
-        this.serverUrl = CONFIG.MCP_SERVER_URL;
+        this.serverUrl = window.APP_CONFIG?.MCP_SERVER_URL || '';
     }
 
     /**
@@ -36,7 +35,7 @@ class MCPClient {
      */
     async insert(table, data) {
         try {
-            const { data: result, error } = await supabase
+            const { data: result, error } = await window.supabaseClient
                 .from(table)
                 .insert(data)
                 .select();
@@ -54,7 +53,7 @@ class MCPClient {
      */
     async update(table, id, data, idColumn = 'id') {
         try {
-            const { data: result, error } = await supabase
+            const { data: result, error } = await window.supabaseClient
                 .from(table)
                 .update(data)
                 .eq(idColumn, id)
@@ -73,7 +72,7 @@ class MCPClient {
      */
     async delete(table, id, idColumn = 'id') {
         try {
-            const { error } = await supabase
+            const { error } = await window.supabaseClient
                 .from(table)
                 .delete()
                 .eq(idColumn, id);
@@ -91,7 +90,7 @@ class MCPClient {
      */
     async select(table, filters = {}, options = {}) {
         try {
-            let query = supabase.from(table).select(options.select || '*');
+            let query = window.supabaseClient.from(table).select(options.select || '*');
             
             // 应用过滤条件
             if (filters.eq) {
@@ -118,8 +117,6 @@ class MCPClient {
     }
 }
 
-// 创建单例实例
-const mcpClient = new MCPClient();
-
-export default mcpClient;
+// 创建单例实例并挂载到全局对象
+window.mcpClient = new MCPClient();
 

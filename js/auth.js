@@ -1,39 +1,34 @@
-// 用户认证模块
-import { supabase } from './supabase-client.js';
+// 用户认证模块 - 修改为全局变量方式，支持直接文件访问
 
-// 显示Toast提示
-function showToast(message, type = 'info') {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.className = `toast ${type}`;
-    toast.classList.remove('hidden');
-    
-    setTimeout(() => {
-        toast.classList.add('hidden');
-    }, 3000);
-}
+// 直接使用window.supabaseClient，避免变量重复声明
 
-// 显示模态框
-function showModal(modalId) {
+// 确保window.authUtils对象存在
+window.authUtils = window.authUtils || {};
+
+// 显示模态框 - 作为authUtils的方法
+window.authUtils.showModal = function(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.add('show');
     }
-}
+};
 
-// 隐藏模态框
-function hideModal(modalId) {
+// 隐藏模态框 - 作为authUtils的方法
+window.authUtils.hideModal = function(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('show');
     }
-}
+};
 
 // 检查登录状态
-export async function checkAuth() {
+async function checkAuth() {
     try {
-        const { data: { session } } = await supabase.auth.getSession();
-        return session;
+        if (window.supabaseClient && window.supabaseClient.auth && window.supabaseClient.auth.getSession) {
+            const { data } = await window.supabaseClient.auth.getSession();
+            return data?.session || null;
+        }
+        return null;
     } catch (error) {
         console.error('Check auth error:', error);
         return null;
@@ -41,9 +36,9 @@ export async function checkAuth() {
 }
 
 // 获取当前用户
-export async function getCurrentUser() {
+async function getCurrentUser() {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
         return user;
     } catch (error) {
         console.error('Get current user error:', error);
@@ -51,10 +46,12 @@ export async function getCurrentUser() {
     }
 }
 
+// 函数定义部分 - 全局对象挂载移至文件末尾
+
 // 用户注册
-export async function signUp(email, password) {
+async function signUp(email, password) {
     try {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await window.supabaseClient.auth.signUp({
             email,
             password,
         });
@@ -62,22 +59,22 @@ export async function signUp(email, password) {
         if (error) throw error;
 
         if (data.user) {
-            showToast('注册成功！请检查邮箱验证链接', 'success');
+            window.authUtils.showToast?.('注册成功！请检查邮箱验证链接', 'success');
             return { success: true, user: data.user };
         }
 
         return { success: false };
     } catch (error) {
-        console.error('Sign up error:', error);
-        showToast(error.message || '注册失败，请重试', 'error');
+            console.error('Sign up error:', error);
+            window.authUtils.showToast?.(error.message || '注册失败，请重试', 'error');
         return { success: false, error };
     }
 }
 
 // 用户登录
-export async function signIn(email, password) {
+async function signIn(email, password) {
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
             email,
             password,
         });
@@ -85,78 +82,85 @@ export async function signIn(email, password) {
         if (error) throw error;
 
         if (data.user) {
-            showToast('登录成功', 'success');
+            window.authUtils.showToast?.('登录成功', 'success');
             return { success: true, user: data.user, session: data.session };
         }
 
         return { success: false };
     } catch (error) {
         console.error('Sign in error:', error);
-        showToast(error.message || '登录失败，请检查邮箱和密码', 'error');
+        window.authUtils.showToast?.(error.message || '登录失败，请检查邮箱和密码', 'error');
         return { success: false, error };
     }
 }
 
 // 用户登出
-export async function signOut() {
+async function signOut() {
     try {
-        const { error } = await supabase.auth.signOut();
+        const { error } = await window.supabaseClient.auth.signOut();
         if (error) throw error;
         
-        showToast('已登出', 'info');
+        window.authUtils.showToast?.('已登出', 'info');
         return { success: true };
     } catch (error) {
         console.error('Sign out error:', error);
-        showToast('登出失败', 'error');
+        window.authUtils.showToast?.('登出失败', 'error');
         return { success: false, error };
     }
 }
 
+
+
 // 更新UI状态
 function updateUIForAuth(user) {
     const appContainer = document.getElementById('appContainer');
-    const loginModal = document.getElementById('loginModal');
-    const registerModal = document.getElementById('registerModal');
     const userEmail = document.getElementById('userEmail');
 
     if (user) {
         // 用户已登录
         appContainer.classList.remove('hidden');
-        loginModal.classList.remove('show');
-        registerModal.classList.remove('show');
+        // 使用authUtils中的方法
+        authUtils.hideModal('loginModal');
+        authUtils.hideModal('registerModal');
         if (userEmail) {
             userEmail.textContent = user.email;
         }
     } else {
         // 用户未登录
         appContainer.classList.add('hidden');
-        showModal('loginModal');
+        authUtils.showModal('loginModal');
     }
 }
 
 // 初始化认证
-export async function initAuth() {
-    // 检查当前登录状态
-    const session = await checkAuth();
-    if (session) {
-        updateUIForAuth(session.user);
-    } else {
-        updateUIForAuth(null);
-    }
-
-    // 监听认证状态变化
-    supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth state changed:', event, session);
+async function initAuth() {
+    try {
+        // 检查当前登录状态
+        const session = await checkAuth();
         if (session) {
             updateUIForAuth(session.user);
         } else {
             updateUIForAuth(null);
         }
-    });
+
+        // 监听认证状态变化
+        window.supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event, session);
+            if (session) {
+                updateUIForAuth(session.user);
+            } else {
+                updateUIForAuth(null);
+            }
+        });
+    } catch (error) {
+        console.error('初始化认证失败:', error);
+        // 即使出错也显示登录界面
+        updateUIForAuth(null);
+    }
 }
 
 // 绑定事件监听器
-export function bindAuthEvents() {
+function bindAuthEvents() {
     // 登录表单
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
@@ -167,7 +171,7 @@ export function bindAuthEvents() {
             
             const result = await signIn(email, password);
             if (result.success) {
-                hideModal('loginModal');
+                authUtils.hideModal('loginModal');
                 loginForm.reset();
             }
         });
@@ -195,10 +199,10 @@ export function bindAuthEvents() {
 
             const result = await signUp(email, password);
             if (result.success) {
-                hideModal('registerModal');
+                authUtils.hideModal('registerModal');
                 registerForm.reset();
                 // 显示提示，需要验证邮箱
-                showModal('loginModal');
+                authUtils.showModal('loginModal');
             }
         });
     }
@@ -207,8 +211,8 @@ export function bindAuthEvents() {
     const showRegisterBtn = document.getElementById('showRegisterBtn');
     if (showRegisterBtn) {
         showRegisterBtn.addEventListener('click', () => {
-            hideModal('loginModal');
-            showModal('registerModal');
+            authUtils.hideModal('loginModal');
+            authUtils.showModal('registerModal');
         });
     }
 
@@ -216,8 +220,8 @@ export function bindAuthEvents() {
     const showLoginBtn = document.getElementById('showLoginBtn');
     if (showLoginBtn) {
         showLoginBtn.addEventListener('click', () => {
-            hideModal('registerModal');
-            showModal('loginModal');
+            authUtils.hideModal('registerModal');
+            authUtils.showModal('loginModal');
         });
     }
 
@@ -231,6 +235,29 @@ export function bindAuthEvents() {
     }
 }
 
-// 导出showToast供其他模块使用
-export { showToast, showModal, hideModal };
+// 显示Toast提示
+window.authUtils.showToast = (message, type = 'info') => {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.textContent = message;
+        toast.className = `toast ${type}`;
+        toast.classList.remove('hidden');
+        
+        setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 3000);
+    }
+};
+
+// 更新authUtils对象，添加所有必要的函数
+window.authUtils = {
+    ...window.authUtils,
+    initAuth,
+    bindAuthEvents,
+    checkAuth,
+    getCurrentUser,
+    signUp,
+    signIn,
+    signOut
+};
 

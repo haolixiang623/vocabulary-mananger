@@ -11,8 +11,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-    <!-- 登录模态框 -->
-    <div id="loginModal" class="modal">
+    <!-- 登录模态框 - 默认显示 -->
+    <div id="loginModal" class="modal show">
         <div class="modal-content">
             <h2>登录</h2>
             <form id="loginForm">
@@ -57,7 +57,7 @@
         </div>
     </div>
 
-    <!-- 主应用容器（登录后显示） -->
+    <!-- 主应用容器 - 默认隐藏 -->
     <div id="appContainer" class="hidden">
         <!-- 头部 -->
         <header class="header">
@@ -157,9 +157,49 @@
                 <div id="reviewSection" class="form-group hidden">
                     <label>复习记录</label>
                     <div class="review-inputs">
-                        <div class="review-item" v-for="i in 6">
-                            <label>第{{i}}次复习</label>
-                            <select :id="'review' + i">
+                        <div class="review-item">
+                            <label>第1次复习</label>
+                            <select id="review1">
+                                <option value="">空</option>
+                                <option value="已完成">已完成</option>
+                                <option value="未完成">未完成</option>
+                            </select>
+                        </div>
+                        <div class="review-item">
+                            <label>第2次复习</label>
+                            <select id="review2">
+                                <option value="">空</option>
+                                <option value="已完成">已完成</option>
+                                <option value="未完成">未完成</option>
+                            </select>
+                        </div>
+                        <div class="review-item">
+                            <label>第3次复习</label>
+                            <select id="review3">
+                                <option value="">空</option>
+                                <option value="已完成">已完成</option>
+                                <option value="未完成">未完成</option>
+                            </select>
+                        </div>
+                        <div class="review-item">
+                            <label>第4次复习</label>
+                            <select id="review4">
+                                <option value="">空</option>
+                                <option value="已完成">已完成</option>
+                                <option value="未完成">未完成</option>
+                            </select>
+                        </div>
+                        <div class="review-item">
+                            <label>第5次复习</label>
+                            <select id="review5">
+                                <option value="">空</option>
+                                <option value="已完成">已完成</option>
+                                <option value="未完成">未完成</option>
+                            </select>
+                        </div>
+                        <div class="review-item">
+                            <label>第6次复习</label>
+                            <select id="review6">
                                 <option value="">空</option>
                                 <option value="已完成">已完成</option>
                                 <option value="未完成">未完成</option>
@@ -224,14 +264,26 @@
     <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
 
     <!-- JavaScript文件 -->
-    <script type="module" src="js/config.js"></script>
-    <script type="module" src="js/supabase-client.js"></script>
-    <script type="module" src="js/mcp-client.js"></script>
-    <script type="module" src="js/auth.js"></script>
-    <script type="module" src="js/tag-service.js"></script>
-    <script type="module" src="js/word-service.js"></script>
-    <script type="module" src="js/export-service.js"></script>
-    <script type="module" src="js/app.js"></script>
+    <!-- 确保Supabase先加载完成，再加载模块 -->
+    <script>
+        // 等待Supabase加载完成
+        window.addEventListener('load', function() {
+            if (!window.supabase) {
+                console.error('Supabase未加载，请检查网络连接或CDN链接');
+            }
+        });
+    </script>
+    <!-- 修改为普通脚本，支持直接文件访问 -->
+    <!-- 按依赖顺序加载 -->
+    <script src="js/config.js"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/mcp-client.js"></script>
+    <script src="js/auth.js"></script>
+    <!-- 按依赖顺序加载服务脚本 -->
+    <script src="js/tag-service.js"></script>
+    <script src="js/word-service.js"></script>
+    <script src="js/export-service.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
 

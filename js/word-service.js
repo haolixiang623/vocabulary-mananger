@@ -1,20 +1,21 @@
 // 单词管理服务
-import { supabase } from './supabase-client.js';
-import { showToast, showModal, hideModal } from './auth.js';
-import { getTags } from './tag-service.js';
+// 使用全局对象而不是import语句
+// 直接使用window.supabaseClient，避免重复声明
+// 直接使用window.authUtils，避免重复声明
+const tagService = window.tagService || {};
 
 let currentEditingWordId = null;
 let selectedTagIds = new Set(); // 用于搜索的选中标签
 let currentWords = []; // 当前显示的单词列表
 
 // 获取所有单词（包含标签）
-export async function getWords() {
+async function getWords() {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 获取用户的所有单词
-        const { data: words, error: wordsError } = await supabase
+        const { data: words, error: wordsError } = await window.supabaseClient
             .from('words')
             .select('*')
             .eq('user_id', user.id)
@@ -23,14 +24,14 @@ export async function getWords() {
         if (wordsError) throw wordsError;
 
         // 获取所有标签关联
-        const { data: wordTags, error: wordTagsError } = await supabase
+        const { data: wordTags, error: wordTagsError } = await window.supabaseClient
             .from('word_tags')
             .select('*');
 
         if (wordTagsError) throw wordTagsError;
 
         // 获取所有标签
-        const { data: tags, error: tagsError } = await supabase
+        const { data: tags, error: tagsError } = await window.supabaseClient
             .from('tags')
             .select('*')
             .eq('user_id', user.id);
@@ -64,13 +65,13 @@ export async function getWords() {
         return wordsWithTags;
     } catch (error) {
         console.error('Get words error:', error);
-        showToast('获取单词列表失败', 'error');
+        window.authUtils.showToast?.('获取单词列表失败', 'error');
         return [];
     }
 }
 
 // 显示单词列表
-export function displayWords(words) {
+function displayWords(words) {
     const tbody = document.getElementById('wordTableBody');
     const emptyState = document.getElementById('emptyState');
     const wordCount = document.getElementById('wordCount');
@@ -132,7 +133,7 @@ export function displayWords(words) {
 }
 
 // 打开添加单词模态框
-export function openAddWordModal() {
+function openAddWordModal() {
     currentEditingWordId = null;
     const modal = document.getElementById('wordModal');
     const title = document.getElementById('wordModalTitle');
@@ -148,7 +149,7 @@ export function openAddWordModal() {
 }
 
 // 打开编辑单词模态框
-export async function openEditWordModal(wordId) {
+async function openEditWordModal(wordId) {
     currentEditingWordId = wordId;
     const modal = document.getElementById('wordModal');
     const title = document.getElementById('wordModalTitle');
@@ -162,7 +163,7 @@ export async function openEditWordModal(wordId) {
     const word = words.find(w => w.id === wordId);
 
     if (!word) {
-        showToast('单词不存在', 'error');
+        window.authUtils.showToast?.('单词不存在', 'error');
         return;
     }
 
@@ -196,7 +197,7 @@ async function loadTagCheckboxes(selectedWordId = null) {
 
     container.innerHTML = '';
 
-    const tags = await getTags();
+    const tags = await tagService.getTags?.() || [];
     let selectedTagIds = new Set();
 
     // 如果编辑单词，获取已选中的标签
@@ -220,13 +221,13 @@ async function loadTagCheckboxes(selectedWordId = null) {
 }
 
 // 添加单词
-export async function addWord(wordData) {
+async function addWord(wordData) {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 插入单词
-        const { data: word, error: wordError } = await supabase
+        const { data: word, error: wordError } = await window.supabaseClient
             .from('words')
             .insert({
                 user_id: user.id,
@@ -251,30 +252,30 @@ export async function addWord(wordData) {
                 tag_id: tagId
             }));
 
-            const { error: wordTagsError } = await supabase
+            const { error: wordTagsError } = await window.supabaseClient
                 .from('word_tags')
                 .insert(wordTagInserts);
 
             if (wordTagsError) throw wordTagsError;
         }
 
-        showToast('单词添加成功', 'success');
+        window.authUtils.showToast?.('单词添加成功', 'success');
         return { success: true, word };
     } catch (error) {
         console.error('Add word error:', error);
-        showToast(error.message || '添加单词失败', 'error');
+        window.authUtils.showToast?.(error.message || '添加单词失败', 'error');
         return { success: false, error };
     }
 }
 
 // 更新单词
-export async function updateWord(wordId, wordData) {
+async function updateWord(wordId, wordData) {
     try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 更新单词
-        const { error: wordError } = await supabase
+        const { error: wordError } = await window.supabaseClient
             .from('words')
             .update({
                 word: wordData.word.trim(),
@@ -292,7 +293,7 @@ export async function updateWord(wordId, wordData) {
         if (wordError) throw wordError;
 
         // 删除旧的标签关联
-        const { error: deleteError } = await supabase
+        const { error: deleteError } = await window.supabaseClient
             .from('word_tags')
             .delete()
             .eq('word_id', wordId);
@@ -306,24 +307,24 @@ export async function updateWord(wordId, wordData) {
                 tag_id: tagId
             }));
 
-            const { error: wordTagsError } = await supabase
+            const { error: wordTagsError } = await window.supabaseClient
                 .from('word_tags')
                 .insert(wordTagInserts);
 
             if (wordTagsError) throw wordTagsError;
         }
 
-        showToast('单词更新成功', 'success');
+        window.authUtils.showToast?.('单词更新成功', 'success');
         return { success: true };
     } catch (error) {
         console.error('Update word error:', error);
-        showToast(error.message || '更新单词失败', 'error');
+        window.authUtils.showToast?.(error.message || '更新单词失败', 'error');
         return { success: false, error };
     }
 }
 
 // 删除单词
-export async function deleteWord(wordId) {
+async function deleteWord(wordId) {
     try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('用户未登录');
@@ -333,7 +334,7 @@ export async function deleteWord(wordId) {
         }
 
         // 删除单词（关联关系会通过CASCADE自动删除）
-        const { error } = await supabase
+        const { error } = await window.supabaseClient
             .from('words')
             .delete()
             .eq('id', wordId)
@@ -341,17 +342,17 @@ export async function deleteWord(wordId) {
 
         if (error) throw error;
 
-        showToast('单词删除成功', 'success');
+        window.authUtils.showToast?.('单词删除成功', 'success');
         return { success: true };
     } catch (error) {
         console.error('Delete word error:', error);
-        showToast(error.message || '删除单词失败', 'error');
+        window.authUtils.showToast?.(error.message || '删除单词失败', 'error');
         return { success: false, error };
     }
 }
 
 // 搜索单词（按标签）
-export async function searchWordsByTags(tagIds) {
+async function searchWordsByTags(tagIds) {
     if (!tagIds || tagIds.length === 0) {
         return await getWords();
     }
@@ -390,7 +391,7 @@ export async function searchWordsByTags(tagIds) {
         return allWords.filter(word => matchingWordIds.includes(word.id));
     } catch (error) {
         console.error('Search words error:', error);
-        showToast('搜索失败', 'error');
+        window.authUtils.showToast?.('搜索失败', 'error');
         return [];
     }
 }
@@ -404,7 +405,7 @@ function escapeHtml(text) {
 }
 
 // 绑定单词相关事件
-export function bindWordEvents() {
+function bindWordEvents() {
     // 添加单词按钮
     const addWordBtn = document.getElementById('addWordBtn');
     if (addWordBtn) {
@@ -428,7 +429,7 @@ export function bindWordEvents() {
             const meaning = meaningInput.value.trim();
 
             if (!word || !meaning) {
-                showToast('请填写单词和中文释义', 'error');
+                window.authUtils.showToast?.('请填写单词和中文释义', 'error');
                 return;
             }
 
@@ -484,7 +485,7 @@ export function bindWordEvents() {
                 if (!tagName) {
                     // 这里需要导入tag-service的createTag函数
                     // 暂时先提示用户使用标签管理功能
-                    showToast('请使用"管理标签"功能添加新标签', 'info');
+                    window.authUtils.showToast?.('请使用"管理标签"功能添加新标签', 'info');
                 }
             }
         });
@@ -500,7 +501,7 @@ export function bindWordEvents() {
 }
 
 // 加载单词列表
-export async function loadWordList() {
+async function loadWordList() {
     const words = await getWords();
     
     // 应用排序
@@ -517,6 +518,23 @@ export async function loadWordList() {
     displayWords(words);
 }
 
-// 导出函数供其他模块使用
-export { currentWords };
+
+
+// 将所有函数挂载到全局对象
+window.wordService = {
+    getWords,
+    displayWords,
+    openAddWordModal,
+    openEditWordModal,
+    addWord,
+    updateWord,
+    deleteWord,
+    searchWordsByTags,
+    bindWordEvents,
+    loadWordList,
+    // 添加当前状态变量的访问器
+    getCurrentEditingWordId: () => currentEditingWordId,
+    getSelectedTagIds: () => selectedTagIds,
+    getCurrentWords: () => currentWords
+};
 

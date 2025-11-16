@@ -1,15 +1,26 @@
 // Excel导出服务
-import { getWords, currentWords, loadWordList } from './word-service.js';
-import { showToast } from './auth.js';
-import { supabase } from './supabase-client.js';
+// 使用全局对象而不是import语句
+
+// 初始化服务对象引用
+function initServiceReferences() {
+    return {
+        wordService: window.wordService || {},
+        authUtils: window.authUtils || {},
+        supabaseClient: window.supabaseClient || {}
+    };
+}
 
 // 导出单词到Excel
-export async function exportToExcel() {
+async function exportToExcel() {
     try {
-        let words = currentWords.length > 0 ? currentWords : await getWords();
+        // 获取服务引用
+        const { wordService, authUtils } = initServiceReferences();
+        const { getWords, getCurrentWords } = wordService;
+        
+        let words = (getCurrentWords && getCurrentWords().length > 0) ? getCurrentWords() : await getWords();
         
         if (words.length === 0) {
-            showToast('没有可导出的单词', 'info');
+            authUtils.showToast?.('没有可导出的单词', 'info');
             return;
         }
 
@@ -89,8 +100,11 @@ export async function exportToExcel() {
 }
 
 // 下载Excel模板
-export function downloadExcelTemplate() {
+async function downloadExcelTemplate() {
     try {
+        // 获取服务引用
+        const { authUtils } = initServiceReferences();
+        
         // 创建工作簿
         const wb = XLSX.utils.book_new();
         
@@ -135,12 +149,15 @@ export function downloadExcelTemplate() {
     }
 }
 
-// 导入Excel文件
-export async function importExcelFile(file) {
-    try {
+// 加载Excel文件
+function loadExcelFile(file) {
+    return new Promise((resolve, reject) => {
+        // 获取服务引用
+        const { authUtils } = initServiceReferences();
+        
         const reader = new FileReader();
         
-        reader.onload = async function(e) {
+        reader.onload = function(e) {
             try {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
@@ -152,29 +169,51 @@ export async function importExcelFile(file) {
                 // 转换为JSON数组
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
                 
-                // 解析并导入数据
-                await parseAndImportExcelData(jsonData);
+                // 检查是否有数据
+                if (!jsonData || jsonData.length < 2) {
+                    authUtils.showToast?.('Excel文件格式错误：至少需要包含表头和数据行', 'error');
+                    reject(new Error('Excel文件格式错误'));
+                    return;
+                }
+                
+                resolve(jsonData);
             } catch (error) {
-                console.error('Parse Excel error:', error);
-                showToast('解析Excel文件失败', 'error');
+                console.error('读取Excel文件错误:', error);
+                authUtils.showToast?.('读取Excel文件失败: ' + error.message, 'error');
+                reject(error);
             }
         };
         
         reader.onerror = function() {
-            showToast('读取文件失败', 'error');
+            authUtils.showToast?.('读取文件失败', 'error');
+            reject(new Error('读取文件失败'));
         };
         
         reader.readAsArrayBuffer(file);
+    });
+}
+
+// 导入Excel文件
+async function importExcelFile(file) {
+    try {
+        // 获取服务引用（loadExcelFile中会再次获取，这里只是为了完整性）
+        const jsonData = await loadExcelFile(file);
+        
+        // 解析并导入数据
+        await parseAndImportExcelData(jsonData);
     } catch (error) {
         console.error('Import Excel error:', error);
-        showToast('导入失败', 'error');
+        // 错误已在loadExcelFile中处理，这里可以不重复显示错误
     }
 }
 
 // 解析并导入Excel数据
 async function parseAndImportExcelData(jsonData) {
-    if (jsonData.length < 2) {
-        showToast('Excel文件格式错误：至少需要包含表头和数据行', 'error');
+    // 获取服务引用
+    const { authUtils, supabaseClient, wordService } = initServiceReferences();
+    
+    if (!jsonData || jsonData.length < 2) {
+        authUtils.showToast?.('Excel文件格式错误：至少需要包含表头和数据行', 'error');
         return;
     }
     
@@ -193,21 +232,20 @@ async function parseAndImportExcelData(jsonData) {
     
     // 验证必需字段
     if (wordIndex === -1 || meaningIndex === -1) {
-        showToast('Excel文件格式错误：缺少必需字段（单词、中文释义）', 'error');
+        authUtils.showToast?.('Excel文件格式错误：缺少必需字段（单词、中文释义）', 'error');
         return;
     }
     
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabaseClient?.auth?.getUser() || { data: { user: null } };
     if (!user) {
-        showToast('用户未登录', 'error');
+        authUtils.showToast?.('用户未登录', 'error');
         return;
     }
     
     // 获取所有已存在的单词（用于重复检查）
-    const { data: existingWords } = await supabase
-        .from('words')
+    const { data: existingWords } = await supabaseClient?.from('words')
         .select('word')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id) || { data: [] };
     
     const existingWordSet = new Set(existingWords.map(w => w.word.toLowerCase()));
     
@@ -322,12 +360,15 @@ async function parseAndImportExcelData(jsonData) {
             review6: w.review6
         }));
         
-        const { data: insertedWords, error: insertError } = await supabase
-            .from('words')
-            .insert(wordInserts)
-            .select();
-        
-        if (insertError) throw insertError;
+        const { data: insertedWords, error: insertError } = await supabaseClient?.from('words')
+        .insert(wordInserts)
+        .select() || { data: [], error: null };
+    
+    if (insertError) {
+        console.error('插入单词错误:', insertError);
+        authUtils.showToast?.('导入单词失败: ' + insertError.message, 'error');
+        return;
+    }
         
         // 处理标签
         for (let i = 0; i < insertedWords.length; i++) {
@@ -339,26 +380,24 @@ async function parseAndImportExcelData(jsonData) {
                 const tagIds = [];
                 for (const tagName of tags) {
                     // 检查标签是否存在
-                    let { data: existingTag } = await supabase
-                        .from('tags')
-                        .select('tag_id')
-                        .eq('user_id', user.id)
-                        .eq('tag_name', tagName)
-                        .single();
+                let { data: existingTag } = await supabaseClient?.from('tags')
+                    .select('tag_id')
+                    .eq('user_id', user.id)
+                    .eq('tag_name', tagName)
+                    .single() || { data: null };
                     
                     let tagId;
                     if (existingTag) {
                         tagId = existingTag.tag_id;
                     } else {
                         // 创建新标签
-                        const { data: newTag, error: tagError } = await supabase
-                            .from('tags')
+                        const { data: newTag, error: tagError } = await supabaseClient?.from('tags')
                             .insert({
                                 user_id: user.id,
                                 tag_name: tagName
                             })
                             .select()
-                            .single();
+                            .single() || { data: null, error: null };
                         
                         if (tagError) {
                             console.error('Create tag error:', tagError);
@@ -377,8 +416,7 @@ async function parseAndImportExcelData(jsonData) {
                         tag_id: tagId
                     }));
                     
-                    await supabase
-                        .from('word_tags')
+                    await supabaseClient?.from('word_tags')
                         .insert(wordTagInserts);
                 }
             }
@@ -388,10 +426,10 @@ async function parseAndImportExcelData(jsonData) {
     // 显示导入结果
     const total = results.success.length + results.failed.length + results.skipped.length;
     const message = `导入完成！成功：${results.success.length}，失败：${results.failed.length}，跳过：${results.skipped.length}`;
-    showToast(message, results.failed.length > 0 ? 'error' : 'success');
+    authUtils.showToast?.(message, results.failed.length > 0 ? 'error' : 'success');
     
     // 刷新单词列表
-    await loadWordList();
+    await wordService?.loadWordList?.();
 }
 
 // 查找列索引
@@ -405,4 +443,13 @@ function findColumnIndex(headers, keywords) {
     }
     return -1;
 }
+
+// 将所有函数挂载到全局对象
+window.exportService = {
+    exportToExcel,
+    downloadExcelTemplate,
+    importExcelFile,
+    parseAndImportExcelData,
+    loadExcelFile
+};
 
