@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词管理系统</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SheetJS Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- 登录模态框 -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2>登录</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">邮箱</label>
+                    <input type="email" id="loginEmail" placeholder="请输入邮箱" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">登录</button>
+                    <button type="button" class="btn btn-secondary" id="showRegisterBtn">注册</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <h2>注册</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="registerEmail">邮箱</label>
+                    <input type="email" id="registerEmail" placeholder="请输入邮箱" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">密码</label>
+                    <input type="password" id="registerPassword" placeholder="请输入密码（至少6位）" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">确认密码</label>
+                    <input type="password" id="confirmPassword" placeholder="请再次输入密码" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">注册</button>
+                    <button type="button" class="btn btn-secondary" id="showLoginBtn">返回登录</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 主应用容器（登录后显示） -->
+    <div id="appContainer" class="hidden">
+        <!-- 头部 -->
+        <header class="header">
+            <h1>单词管理系统</h1>
+            <div class="header-actions">
+                <span id="userEmail" class="user-info"></span>
+                <button id="logoutBtn" class="btn btn-secondary">登出</button>
+            </div>
+        </header>
+
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <div class="search-section">
+                <h3>标签搜索</h3>
+                <div id="tagSelector" class="tag-selector">
+                    <!-- 标签将通过JavaScript动态添加 -->
+                </div>
+                <div class="search-actions">
+                    <button id="searchBtn" class="btn btn-primary">搜索</button>
+                    <button id="clearSearchBtn" class="btn btn-secondary">清空筛选</button>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="addWordBtn" class="btn btn-success">添加单词</button>
+                <button id="manageTagsBtn" class="btn btn-info">管理标签</button>
+                <button id="exportExcelBtn" class="btn btn-warning">导出Excel</button>
+                <button id="importExcelBtn" class="btn btn-info">导入Excel</button>
+            </div>
+        </div>
+
+        <!-- 单词列表 -->
+        <div class="word-list-container">
+            <div class="list-header">
+                <h2>单词列表</h2>
+                <div class="sort-controls">
+                    <label>排序：</label>
+                    <select id="sortOrder">
+                        <option value="asc">序号升序</option>
+                        <option value="desc">序号降序</option>
+                    </select>
+                </div>
+            </div>
+            <table id="wordTable" class="word-table">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>单词</th>
+                        <th>中文释义</th>
+                        <th>标签</th>
+                        <th>第1次复习</th>
+                        <th>第2次复习</th>
+                        <th>第3次复习</th>
+                        <th>第4次复习</th>
+                        <th>第5次复习</th>
+                        <th>第6次复习</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="wordTableBody">
+                    <!-- 单词数据将通过JavaScript动态添加 -->
+                </tbody>
+            </table>
+            <div id="emptyState" class="empty-state hidden">
+                <p>暂无单词数据，点击"添加单词"开始创建</p>
+            </div>
+        </div>
+
+        <!-- 统计信息 -->
+        <div class="stats">
+            <span id="wordCount">共 0 个单词</span>
+        </div>
+    </div>
+
+    <!-- 添加/编辑单词模态框 -->
+    <div id="wordModal" class="modal">
+        <div class="modal-content">
+            <h2 id="wordModalTitle">添加单词</h2>
+            <form id="wordForm">
+                <div class="form-group">
+                    <label for="wordInput">单词 <span class="required">*</span></label>
+                    <input type="text" id="wordInput" placeholder="请输入单词" required>
+                </div>
+                <div class="form-group">
+                    <label for="meaningInput">中文释义 <span class="required">*</span></label>
+                    <textarea id="meaningInput" placeholder="请输入中文释义" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>标签</label>
+                    <div id="tagCheckboxes" class="tag-checkboxes">
+                        <!-- 标签复选框将通过JavaScript动态添加 -->
+                    </div>
+                    <div class="new-tag-input">
+                        <input type="text" id="newTagInput" placeholder="输入新标签名称，按回车添加">
+                    </div>
+                </div>
+                <div id="reviewSection" class="form-group hidden">
+                    <label>复习记录</label>
+                    <div class="review-inputs">
+                        <div class="review-item" v-for="i in 6">
+                            <label>第{{i}}次复习</label>
+                            <select :id="'review' + i">
+                                <option value="">空</option>
+                                <option value="已完成">已完成</option>
+                                <option value="未完成">未完成</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-secondary" id="cancelWordBtn">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 标签管理模态框 -->
+    <div id="tagModal" class="modal">
+        <div class="modal-content">
+            <h2>标签管理</h2>
+            <div class="tag-management">
+                <div class="add-tag-section">
+                    <input type="text" id="newTagNameInput" placeholder="输入标签名称">
+                    <button id="addTagBtn" class="btn btn-primary">添加标签</button>
+                </div>
+                <div class="tag-list">
+                    <table id="tagTable" class="tag-table">
+                        <thead>
+                            <tr>
+                                <th>标签名称</th>
+                                <th>关联单词数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tagTableBody">
+                            <!-- 标签数据将通过JavaScript动态添加 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="closeTagModalBtn">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认对话框 -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content modal-small">
+            <h3 id="confirmTitle">确认</h3>
+            <p id="confirmMessage"></p>
+            <div class="form-actions">
+                <button id="confirmBtn" class="btn btn-danger">确认</button>
+                <button id="cancelConfirmBtn" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- 文件输入（隐藏，用于Excel导入） -->
+    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
+
+    <!-- JavaScript文件 -->
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/supabase-client.js"></script>
+    <script type="module" src="js/mcp-client.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/tag-service.js"></script>
+    <script type="module" src="js/word-service.js"></script>
+    <script type="module" src="js/export-service.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
+
