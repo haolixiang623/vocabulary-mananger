@@ -260,8 +260,28 @@
     <!-- Toast提示 -->
     <div id="toast" class="toast hidden"></div>
 
-    <!-- 文件输入（隐藏，用于Excel导入） -->
-    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
+    <!-- 导入Excel模态框 -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <h2>导入Excel</h2>
+            <div class="import-section">
+                <p>请上传包含单词信息的Excel文件</p>
+                <div class="upload-area">
+                    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
+                    <button id="selectFileBtn" class="btn btn-primary">选择文件</button>
+                    <span id="fileName" class="file-name">未选择文件</span>
+                </div>
+                <div class="template-section">
+                    <p>使用模板确保格式正确：</p>
+                    <button id="downloadTemplateBtn" class="btn btn-info">下载导入模板</button>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button id="confirmImportBtn" class="btn btn-success" disabled>确认导入</button>
+                <button id="cancelImportBtn" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
 
     <!-- JavaScript文件 -->
     <!-- 确保Supabase先加载完成，再加载模块 -->

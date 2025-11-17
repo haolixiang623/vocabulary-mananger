@@ -105,19 +105,94 @@ function bindOtherEvents() {
         });
     }
     
-    // 导入Excel按钮
+    // 导入Excel相关功能
     const importExcelBtn = document.getElementById('importExcelBtn');
+    const importModal = document.getElementById('importModal');
     const excelFileInput = document.getElementById('excelFileInput');
-    if (importExcelBtn && excelFileInput) {
+    const fileName = document.getElementById('fileName');
+    const selectFileBtn = document.getElementById('selectFileBtn');
+    const confirmImportBtn = document.getElementById('confirmImportBtn');
+    const cancelImportBtn = document.getElementById('cancelImportBtn');
+    const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
+    
+    // 打开导入模态框
+    if (importExcelBtn && importModal) {
         importExcelBtn.addEventListener('click', () => {
+            importModal.classList.add('show');
+        });
+    }
+    
+    // 选择文件按钮
+    if (selectFileBtn && excelFileInput && fileName && confirmImportBtn) {
+        selectFileBtn.addEventListener('click', () => {
             excelFileInput.click();
         });
         
         excelFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
+            if (file) {
+                fileName.textContent = file.name;
+                confirmImportBtn.disabled = false;
+            } else {
+                fileName.textContent = '未选择文件';
+                confirmImportBtn.disabled = true;
+            }
+        });
+    }
+    
+    // 确认导入按钮
+    if (confirmImportBtn && excelFileInput && importModal) {
+        confirmImportBtn.addEventListener('click', async () => {
+            const file = excelFileInput.files[0];
             if (file && window.exportService && window.exportService.importExcelFile) {
-                window.exportService.importExcelFile(file);
-                e.target.value = ''; // 清空文件选择，允许重复选择
+                confirmImportBtn.disabled = true;
+                try {
+                    await window.exportService.importExcelFile(file);
+                    // 导入成功后关闭模态框
+                    importModal.classList.remove('show');
+                    // 重置表单
+                    excelFileInput.value = '';
+                    fileName.textContent = '未选择文件';
+                } catch (error) {
+                    console.error('导入失败:', error);
+                    if (window.authUtils?.showToast) {
+                        window.authUtils.showToast('导入失败: ' + error.message, 'error');
+                    }
+                } finally {
+                    confirmImportBtn.disabled = false;
+                }
+            }
+        });
+    }
+    
+    // 取消导入按钮
+    if (cancelImportBtn && importModal && excelFileInput && fileName) {
+        cancelImportBtn.addEventListener('click', () => {
+            importModal.classList.remove('show');
+            // 重置表单
+            excelFileInput.value = '';
+            fileName.textContent = '未选择文件';
+            if (confirmImportBtn) {
+                confirmImportBtn.disabled = true;
+            }
+        });
+    }
+    
+    // 下载模板按钮
+    if (downloadTemplateBtn) {
+        downloadTemplateBtn.addEventListener('click', () => {
+            if (window.exportService && window.exportService.downloadExcelTemplate) {
+                try {
+                    window.exportService.downloadExcelTemplate();
+                    if (window.authUtils?.showToast) {
+                        window.authUtils.showToast('模板下载成功', 'success');
+                    }
+                } catch (error) {
+                    console.error('模板下载失败:', error);
+                    if (window.authUtils?.showToast) {
+                        window.authUtils.showToast('模板下载失败: ' + error.message, 'error');
+                    }
+                }
             }
         });
     }

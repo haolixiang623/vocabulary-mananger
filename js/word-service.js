@@ -342,6 +342,10 @@ async function deleteWord(wordId) {
 
         if (error) throw error;
 
+        // 刷新单词列表
+        const updatedWords = await getWords();
+        displayWords(updatedWords);
+        
         window.authUtils.showToast?.('单词删除成功', 'success');
         return { success: true };
     } catch (error) {
