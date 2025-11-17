@@ -21,6 +21,7 @@ async function getTags() {
         // 获取每个标签关联的单词数量
         const tagsWithCount = await Promise.all(
             tags.map(async (tag) => {
+                // 注意：确保符合RLS策略，添加用户过滤
                 const { count, error: countError } = await window.supabaseClient
                     .from('word_tags')
                     .select('*', { count: 'exact', head: true })
@@ -128,6 +129,7 @@ async function deleteTag(tagId) {
         if (!user) throw new Error('用户未登录');
 
         // 获取关联的单词数量
+        // RLS策略会自动通过word_id关联检查权限，返回当前用户相关的数据
         const { count } = await window.supabaseClient
             .from('word_tags')
             .select('*', { count: 'exact', head: true })

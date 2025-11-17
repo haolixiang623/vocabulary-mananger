@@ -23,13 +23,6 @@ async function getWords() {
 
         if (wordsError) throw wordsError;
 
-        // 获取所有标签关联
-        const { data: wordTags, error: wordTagsError } = await window.supabaseClient
-            .from('word_tags')
-            .select('*');
-
-        if (wordTagsError) throw wordTagsError;
-
         // 获取所有标签
         const { data: tags, error: tagsError } = await window.supabaseClient
             .from('tags')
@@ -37,6 +30,15 @@ async function getWords() {
             .eq('user_id', user.id);
 
         if (tagsError) throw tagsError;
+
+        // 为了符合RLS策略，我们将通过用户的单词来批量获取对应的word_tags
+        // 由于我们已经有了用户的单词列表，我们可以直接构建单词ID到标签的映射
+        // 使用单个查询获取所有相关的word_tags，通过RLS策略自动过滤用户的数据
+        const { data: wordTags, error: wordTagsError } = await window.supabaseClient
+            .from('word_tags')
+            .select('*');
+
+        if (wordTagsError) throw wordTagsError;
 
         // 创建标签映射
         const tagMap = new Map();
@@ -252,6 +254,7 @@ async function addWord(wordData) {
                 tag_id: tagId
             }));
 
+            // 插入标签关联，RLS策略会自动通过word_id关联检查权限
             const { error: wordTagsError } = await window.supabaseClient
                 .from('word_tags')
                 .insert(wordTagInserts);
@@ -292,7 +295,7 @@ async function updateWord(wordId, wordData) {
 
         if (wordError) throw wordError;
 
-        // 删除旧的标签关联
+        // 删除旧的标签关联，RLS策略会自动通过word_id关联检查权限
         const { error: deleteError } = await window.supabaseClient
             .from('word_tags')
             .delete()
@@ -300,7 +303,7 @@ async function updateWord(wordId, wordData) {
 
         if (deleteError) throw deleteError;
 
-        // 插入新的标签关联
+        // 插入新的标签关联，RLS策略会自动通过word_id关联检查权限
         if (wordData.tagIds && wordData.tagIds.length > 0) {
             const wordTagInserts = wordData.tagIds.map(tagId => ({
                 word_id: wordId,

@@ -92,10 +92,10 @@ async function exportToExcel() {
         // 导出文件
         XLSX.writeFile(wb, fileName);
 
-        showToast('导出成功', 'success');
+        window.authUtils.showToast?.('导出成功', 'success');
     } catch (error) {
         console.error('Export to Excel error:', error);
-        showToast('导出失败', 'error');
+        window.authUtils.showToast?.('导出失败', 'error');
     }
 }
 
@@ -142,10 +142,10 @@ async function downloadExcelTemplate() {
         
         // 导出文件
         XLSX.writeFile(wb, '单词导入模板.xlsx');
-        showToast('模板下载成功', 'success');
+        window.authUtils.showToast?.('模板下载成功', 'success');
     } catch (error) {
         console.error('Download template error:', error);
-        showToast('模板下载失败', 'error');
+        window.authUtils.showToast?.('模板下载失败', 'error');
     }
 }
 
@@ -416,8 +416,15 @@ async function parseAndImportExcelData(jsonData) {
                         tag_id: tagId
                     }));
                     
-                    await supabaseClient?.from('word_tags')
+                    // 使用正确的方式插入word_tags，RLS策略会自动通过word_id关联检查权限
+                    const { error: wordTagError } = await supabaseClient?.from('word_tags')
                         .insert(wordTagInserts);
+                    
+                    if (wordTagError) {
+                        console.error('插入标签关联失败:', wordTagError);
+                        // 记录错误但不中断整个导入过程
+                        continue;
+                    }
                 }
             }
         }
