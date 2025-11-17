@@ -46,7 +46,7 @@ async function getTags() {
 // 创建标签
 async function createTag(tagName) {
     try {
-        const { data: { user } } = await supabaseClient.auth.getUser();
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 检查标签是否已存在
@@ -85,7 +85,7 @@ async function createTag(tagName) {
 // 更新标签
 async function updateTag(tagId, newName) {
     try {
-        const { data: { user } } = await supabaseClient.auth.getUser();
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 检查新名称是否与其他标签重复
@@ -124,7 +124,7 @@ async function updateTag(tagId, newName) {
 // 删除标签
 async function deleteTag(tagId) {
     try {
-        const { data: { user } } = await supabaseClient.auth.getUser();
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 获取关联的单词数量
@@ -166,7 +166,7 @@ async function deleteTag(tagId) {
 
 // 显示标签管理模态框
 function showTagModal() {
-    showModal('tagModal');
+    window.authUtils.showModal('tagModal');
     loadTagList();
 }
 
@@ -287,7 +287,7 @@ function bindTagEvents() {
     const closeTagModalBtn = document.getElementById('closeTagModalBtn');
     if (closeTagModalBtn) {
         closeTagModalBtn.addEventListener('click', () => {
-            hideModal('tagModal');
+            window.authUtils.hideModal('tagModal');
         });
     }
 

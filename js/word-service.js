@@ -145,7 +145,7 @@ function openAddWordModal() {
     if (reviewSection) reviewSection.classList.add('hidden');
 
     loadTagCheckboxes();
-    showModal('wordModal');
+    window.authUtils.showModal('wordModal');
 }
 
 // 打开编辑单词模态框
@@ -187,7 +187,7 @@ async function openEditWordModal(wordId) {
     // 加载标签复选框（选中当前单词的标签）
     loadTagCheckboxes(wordId);
 
-    showModal('wordModal');
+    window.authUtils.showModal('wordModal');
 }
 
 // 加载标签复选框
@@ -197,7 +197,7 @@ async function loadTagCheckboxes(selectedWordId = null) {
 
     container.innerHTML = '';
 
-    const tags = await tagService.getTags?.() || [];
+    const tags = await window.tagService.getTags?.() || [];
     let selectedTagIds = new Set();
 
     // 如果编辑单词，获取已选中的标签
@@ -223,7 +223,7 @@ async function loadTagCheckboxes(selectedWordId = null) {
 // 添加单词
 async function addWord(wordData) {
     try {
-        const { data: { user } } = await supabaseClient.auth.getUser();
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 插入单词
@@ -271,7 +271,7 @@ async function addWord(wordData) {
 // 更新单词
 async function updateWord(wordId, wordData) {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 更新单词
@@ -326,7 +326,7 @@ async function updateWord(wordId, wordData) {
 // 删除单词
 async function deleteWord(wordId) {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         if (!confirm('确定要删除这个单词吗？')) {
@@ -358,12 +358,12 @@ async function searchWordsByTags(tagIds) {
     }
 
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
         // 获取包含所有选中标签的单词ID
         // 使用子查询找到同时包含所有标签的单词
-        const { data: wordTags, error } = await supabase
+        const { data: wordTags, error } = await window.supabaseClient
             .from('word_tags')
             .select('word_id, tag_id')
             .in('tag_id', tagIds);
@@ -461,7 +461,7 @@ function bindWordEvents() {
             }
 
             if (result.success) {
-                hideModal('wordModal');
+                window.authUtils.hideModal('wordModal');
                 await loadWordList();
             }
         });
@@ -471,7 +471,7 @@ function bindWordEvents() {
     const cancelWordBtn = document.getElementById('cancelWordBtn');
     if (cancelWordBtn) {
         cancelWordBtn.addEventListener('click', () => {
-            hideModal('wordModal');
+            window.authUtils.hideModal('wordModal');
         });
     }
 

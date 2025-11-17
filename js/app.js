@@ -18,7 +18,9 @@ async function initApp() {
         }
         
         // 绑定单词相关事件
-        // bindWordEvents(); // 将在后续修改
+        if (window.wordService?.bindWordEvents) {
+            window.wordService.bindWordEvents();
+        }
         
         // 绑定标签相关事件
         // bindTagEvents(); // 将在后续修改
@@ -30,7 +32,7 @@ async function initApp() {
         if (window.supabaseClient && window.supabaseClient.auth && window.supabaseClient.auth.getSession) {
             const result = await window.supabaseClient.auth.getSession();
             if (result.data && result.data.session) {
-                // await loadInitialData(); // 将在后续修改
+                await loadInitialData();
             }
         }
     } catch (error) {
@@ -89,7 +91,7 @@ function bindOtherEvents() {
     const manageTagsBtn = document.getElementById('manageTagsBtn');
     if (manageTagsBtn) {
         manageTagsBtn.addEventListener('click', () => {
-            showTagModal();
+            window.tagService.showTagModal();
         });
     }
     
@@ -226,7 +228,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (window.supabaseClient && window.supabaseClient.auth && window.supabaseClient.auth.getSession) {
                     const result = await window.supabaseClient.auth.getSession();
                     if (result.data && result.data.session) {
-                        // 这里不直接调用loadInitialData，避免嵌套await
+                        // 绑定单词相关事件
+                        if (window.wordService?.bindWordEvents) {
+                            window.wordService.bindWordEvents();
+                        }
+                        // 加载初始数据
+                        await loadInitialData();
                     }
                 }
             } catch (error) {

@@ -120,15 +120,15 @@ function updateUIForAuth(user) {
         // 用户已登录
         appContainer.classList.remove('hidden');
         // 使用authUtils中的方法
-        authUtils.hideModal('loginModal');
-        authUtils.hideModal('registerModal');
+        window.authUtils.hideModal('loginModal');
+        window.authUtils.hideModal('registerModal');
         if (userEmail) {
             userEmail.textContent = user.email;
         }
     } else {
         // 用户未登录
         appContainer.classList.add('hidden');
-        authUtils.showModal('loginModal');
+        window.authUtils.showModal('loginModal');
     }
 }
 
@@ -171,7 +171,7 @@ function bindAuthEvents() {
             
             const result = await signIn(email, password);
             if (result.success) {
-                authUtils.hideModal('loginModal');
+                window.authUtils.hideModal('loginModal');
                 loginForm.reset();
             }
         });
@@ -188,21 +188,21 @@ function bindAuthEvents() {
 
             // 验证密码
             if (password !== confirmPassword) {
-                showToast('两次输入的密码不一致', 'error');
+                window.authUtils.showToast('两次输入的密码不一致', 'error');
                 return;
             }
 
             if (password.length < 6) {
-                showToast('密码长度至少6位', 'error');
+                window.authUtils.showToast('密码长度至少6位', 'error');
                 return;
             }
 
             const result = await signUp(email, password);
             if (result.success) {
-                authUtils.hideModal('registerModal');
+                window.authUtils.hideModal('registerModal');
                 registerForm.reset();
                 // 显示提示，需要验证邮箱
-                authUtils.showModal('loginModal');
+                window.authUtils.showModal('loginModal');
             }
         });
     }
@@ -211,8 +211,8 @@ function bindAuthEvents() {
     const showRegisterBtn = document.getElementById('showRegisterBtn');
     if (showRegisterBtn) {
         showRegisterBtn.addEventListener('click', () => {
-            authUtils.hideModal('loginModal');
-            authUtils.showModal('registerModal');
+            window.authUtils.hideModal('loginModal');
+            window.authUtils.showModal('registerModal');
         });
     }
 
@@ -220,8 +220,8 @@ function bindAuthEvents() {
     const showLoginBtn = document.getElementById('showLoginBtn');
     if (showLoginBtn) {
         showLoginBtn.addEventListener('click', () => {
-            authUtils.hideModal('registerModal');
-            authUtils.showModal('loginModal');
+            window.authUtils.hideModal('registerModal');
+            window.authUtils.showModal('loginModal');
         });
     }
 
