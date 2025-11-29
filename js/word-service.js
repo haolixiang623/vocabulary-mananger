@@ -795,6 +795,7 @@ window.wordService = {
     loadWordList,
     // 添加当前状态变量的访问器
     getCurrentEditingWordId: () => currentEditingWordId,
+    getSelectedWordIds: () => selectedWordIds,
     getSelectedTagIds: () => selectedTagIds,
     getCurrentWords: () => currentWords,
     // 批量操作

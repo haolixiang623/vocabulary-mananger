@@ -102,7 +102,14 @@ function bindOtherEvents() {
     if (exportExcelBtn) {
         exportExcelBtn.addEventListener('click', () => {
             if (window.exportService && window.exportService.exportToExcel) {
-                window.exportService.exportToExcel();
+                let selectedIds = [];
+                if (window.wordService && window.wordService.getSelectedWordIds) {
+                    const idsSet = window.wordService.getSelectedWordIds();
+                    if (idsSet && idsSet.size > 0) {
+                        selectedIds = Array.from(idsSet);
+                    }
+                }
+                window.exportService.exportToExcel(selectedIds);
             }
         });
     }

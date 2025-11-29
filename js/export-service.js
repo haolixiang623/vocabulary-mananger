@@ -11,13 +11,18 @@ function initServiceReferences() {
 }
 
 // 导出单词到Excel
-async function exportToExcel() {
+async function exportToExcel(selectedIds = null) {
     try {
         // 获取服务引用
         const { wordService, authUtils } = initServiceReferences();
         const { getWords, getCurrentWords } = wordService;
 
         let words = (getCurrentWords && getCurrentWords().length > 0) ? getCurrentWords() : await getWords();
+
+        // 如果指定了ID，则只导出选中的单词
+        if (selectedIds && selectedIds.length > 0) {
+            words = words.filter(w => selectedIds.includes(w.id));
+        }
 
         if (words.length === 0) {
             authUtils.showToast?.('没有可导出的单词', 'info');
