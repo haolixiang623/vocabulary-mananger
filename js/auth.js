@@ -6,7 +6,7 @@
 window.authUtils = window.authUtils || {};
 
 // 显示模态框 - 作为authUtils的方法
-window.authUtils.showModal = function(modalId) {
+window.authUtils.showModal = function (modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.add('show');
@@ -14,7 +14,7 @@ window.authUtils.showModal = function(modalId) {
 };
 
 // 隐藏模态框 - 作为authUtils的方法
-window.authUtils.hideModal = function(modalId) {
+window.authUtils.hideModal = function (modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('show');
@@ -65,8 +65,8 @@ async function signUp(email, password) {
 
         return { success: false };
     } catch (error) {
-            console.error('Sign up error:', error);
-            window.authUtils.showToast?.(error.message || '注册失败，请重试', 'error');
+        console.error('Sign up error:', error);
+        window.authUtils.showToast?.(error.message || '注册失败，请重试', 'error');
         return { success: false, error };
     }
 }
@@ -99,7 +99,7 @@ async function signOut() {
     try {
         const { error } = await window.supabaseClient.auth.signOut();
         if (error) throw error;
-        
+
         window.authUtils.showToast?.('已登出', 'info');
         return { success: true };
     } catch (error) {
@@ -168,7 +168,7 @@ function bindAuthEvents() {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-            
+
             const result = await signIn(email, password);
             if (result.success) {
                 window.authUtils.hideModal('loginModal');
@@ -235,6 +235,50 @@ function bindAuthEvents() {
     }
 }
 
+// 显示确认对话框
+window.authUtils.showConfirm = (message, title = '确认') => {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('confirmTitle');
+        const messageEl = document.getElementById('confirmMessage');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const cancelBtn = document.getElementById('cancelConfirmBtn');
+
+        if (!modal || !confirmBtn || !cancelBtn) {
+            // 如果模态框不存在，回退到原生confirm
+            resolve(confirm(message));
+            return;
+        }
+
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
+
+        // 清除旧的事件监听器（通过克隆节点）
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+        // 绑定新事件
+        const handleConfirm = () => {
+            modal.classList.remove('show');
+            resolve(true);
+        };
+
+        const handleCancel = () => {
+            modal.classList.remove('show');
+            resolve(false);
+        };
+
+        newConfirmBtn.addEventListener('click', handleConfirm);
+        newCancelBtn.addEventListener('click', handleCancel);
+
+        // 显示模态框
+        modal.classList.add('show');
+    });
+};
+
 // 显示Toast提示
 window.authUtils.showToast = (message, type = 'info') => {
     const toast = document.getElementById('toast');
@@ -242,7 +286,7 @@ window.authUtils.showToast = (message, type = 'info') => {
         toast.textContent = message;
         toast.className = `toast ${type}`;
         toast.classList.remove('hidden');
-        
+
         setTimeout(() => {
             toast.classList.add('hidden');
         }, 3000);

@@ -138,27 +138,30 @@ async function deleteTag(tagId) {
         // 显示确认对话框
         return new Promise((resolve) => {
             const confirmMessage = `该标签关联${count || 0}个单词，删除后单词将移除该标签，是否继续？`;
-            if (confirm(confirmMessage)) {
-                // 删除标签（关联关系会通过CASCADE自动删除）
-                window.supabaseClient
-                    .from('tags')
-                    .delete()
-                    .eq('tag_id', tagId)
-                    .eq('user_id', user.id)
-                    .then(({ error }) => {
-                        if (error) throw error;
-                        window.authUtils.showToast?.('标签删除成功', 'success');
-                        resolve({ success: true });
-                    })
-                    .catch((error) => {
-                        console.error('Delete tag error:', error);
-                        window.authUtils.showToast?.(error.message || '删除标签失败', 'error');
-                        resolve({ success: false, error });
-                    });
-            } else {
-                resolve({ success: false, cancelled: true });
-            }
+            window.authUtils.showConfirm(confirmMessage, '删除标签确认').then(confirmed => {
+                if (confirmed) {
+                    // 删除标签（关联关系会通过CASCADE自动删除）
+                    window.supabaseClient
+                        .from('tags')
+                        .delete()
+                        .eq('tag_id', tagId)
+                        .eq('user_id', user.id)
+                        .then(({ error }) => {
+                            if (error) throw error;
+                            window.authUtils.showToast?.('标签删除成功', 'success');
+                            resolve({ success: true });
+                        })
+                        .catch(error => {
+                            console.error('Delete tag error:', error);
+                            window.authUtils.showToast?.('删除标签失败', 'error');
+                            resolve({ success: false, error });
+                        });
+                } else {
+                    resolve({ success: false, cancelled: true });
+                }
+            });
         });
+
     } catch (error) {
         console.error('Delete tag error:', error);
         window.authUtils.showToast?.(error.message || '删除标签失败', 'error');
@@ -176,7 +179,7 @@ function showTagModal() {
 async function loadTagList() {
     const tags = await getTags();
     const tbody = document.getElementById('tagTableBody');
-    
+
     if (!tbody) return;
 
     tbody.innerHTML = '';
@@ -224,7 +227,7 @@ async function loadTagList() {
             const tagId = e.target.dataset.tagId;
             const input = document.querySelector(`.tag-name-edit[data-tag-id="${tagId}"]`);
             const newName = input.value.trim();
-            
+
             if (!newName) {
                 window.authUtils.showToast?.('标签名称不能为空', 'error');
                 return;
@@ -271,7 +274,7 @@ function bindTagEvents() {
         addTagBtn.addEventListener('click', async () => {
             const input = document.getElementById('newTagNameInput');
             const tagName = input.value.trim();
-            
+
             if (!tagName) {
                 window.authUtils.showToast?.('请输入标签名称', 'error');
                 return;

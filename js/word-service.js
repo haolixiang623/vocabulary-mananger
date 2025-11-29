@@ -1,12 +1,13 @@
 // 单词管理服务
 // 使用全局对象而不是import语句
 // 直接使用window.supabaseClient，避免重复声明
-// 直接使用window.authUtils，避免重复声明
+
 const tagService = window.tagService || {};
 
 let currentEditingWordId = null;
 let selectedTagIds = new Set(); // 用于搜索的选中标签
 let currentWords = []; // 当前显示的单词列表
+let selectedWordIds = new Set(); // 批量操作选中的单词ID
 
 // 获取所有单词（包含标签）
 async function getWords() {
@@ -51,7 +52,7 @@ async function getWords() {
             const wordTagIds = wordTags
                 .filter(wt => wt.word_id === word.id)
                 .map(wt => wt.tag_id);
-            
+
             const wordTagsList = wordTagIds
                 .map(tagId => tagMap.get(tagId))
                 .filter(name => name);
@@ -77,10 +78,41 @@ function displayWords(words) {
     const tbody = document.getElementById('wordTableBody');
     const emptyState = document.getElementById('emptyState');
     const wordCount = document.getElementById('wordCount');
+    const thead = document.querySelector('#wordTable thead tr');
 
     if (!tbody) return;
 
+    // 更新表头，添加全选复选框
+    if (thead && !thead.querySelector('.checkbox-col')) {
+        const th = document.createElement('th');
+        th.className = 'checkbox-col';
+        th.innerHTML = '<input type="checkbox" id="selectAllCheckbox">';
+        thead.insertBefore(th, thead.firstChild);
+
+        // 绑定全选事件
+        const selectAll = document.getElementById('selectAllCheckbox');
+        selectAll.addEventListener('change', (e) => {
+            const checkboxes = document.querySelectorAll('.word-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+                const wordId = parseInt(cb.value);
+                if (e.target.checked) {
+                    selectedWordIds.add(wordId);
+                } else {
+                    selectedWordIds.delete(wordId);
+                }
+            });
+            updateBatchToolbar();
+        });
+    }
+
     tbody.innerHTML = '';
+    selectedWordIds.clear(); // 重置选择
+    updateBatchToolbar();
+
+    // 重置全选框
+    const selectAll = document.getElementById('selectAllCheckbox');
+    if (selectAll) selectAll.checked = false;
 
     if (words.length === 0) {
         tbody.innerHTML = '';
@@ -95,6 +127,9 @@ function displayWords(words) {
     words.forEach(word => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
+            <td class="checkbox-col">
+                <input type="checkbox" class="word-checkbox" value="${word.id}">
+            </td>
             <td>${word.id}</td>
             <td>${escapeHtml(word.word)}</td>
             <td>${escapeHtml(word.meaning)}</td>
@@ -113,8 +148,25 @@ function displayWords(words) {
                 <button class="btn btn-primary btn-small edit-word-btn" data-word-id="${word.id}">编辑</button>
                 <button class="btn btn-danger btn-small delete-word-btn" data-word-id="${word.id}">删除</button>
             </td>
-        `;
+`;
         tbody.appendChild(tr);
+    });
+
+    // 绑定复选框事件
+    document.querySelectorAll('.word-checkbox').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+            const wordId = parseInt(e.target.value);
+            if (e.target.checked) {
+                selectedWordIds.add(wordId);
+            } else {
+                selectedWordIds.delete(wordId);
+            }
+            updateBatchToolbar();
+
+            // 更新全选框状态
+            const allChecked = Array.from(document.querySelectorAll('.word-checkbox')).every(c => c.checked);
+            if (selectAll) selectAll.checked = allChecked;
+        });
     });
 
     // 绑定编辑按钮事件
@@ -132,6 +184,131 @@ function displayWords(words) {
             deleteWord(wordId);
         });
     });
+}
+
+// 更新批量工具栏状态
+function updateBatchToolbar() {
+    const toolbar = document.getElementById('batchToolbar');
+    const countSpan = document.getElementById('selectedCount');
+
+    if (toolbar && countSpan) {
+        countSpan.textContent = selectedWordIds.size;
+        if (selectedWordIds.size > 0) {
+            toolbar.classList.remove('hidden');
+        } else {
+            toolbar.classList.add('hidden');
+        }
+    }
+}
+
+// 批量删除
+async function batchDelete() {
+    if (selectedWordIds.size === 0) return;
+
+    const confirmed = await window.authUtils.showConfirm(`确定要删除选中的 ${selectedWordIds.size} 个单词吗？`, '批量删除确认');
+    if (!confirmed) return;
+
+    try {
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        if (!user) throw new Error('用户未登录');
+
+        const ids = Array.from(selectedWordIds);
+        const { error } = await window.supabaseClient
+            .from('words')
+            .delete()
+            .in('id', ids)
+            .eq('user_id', user.id);
+
+        if (error) throw error;
+
+        window.authUtils.showToast?.('批量删除成功', 'success');
+        await loadWordList();
+    } catch (error) {
+        console.error('Batch delete error:', error);
+        window.authUtils.showToast?.('批量删除失败: ' + error.message, 'error');
+    }
+}
+
+// 批量更新标签
+async function batchUpdateTags(tagIds, action) {
+    if (selectedWordIds.size === 0) return;
+    if (tagIds.length === 0) return;
+
+    try {
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        if (!user) throw new Error('用户未登录');
+
+        const wordIds = Array.from(selectedWordIds);
+
+        if (action === 'add') {
+            // 准备插入数据
+            const inserts = [];
+            for (const wordId of wordIds) {
+                for (const tagId of tagIds) {
+                    inserts.push({ word_id: wordId, tag_id: tagId });
+                }
+            }
+
+            // 批量插入（忽略冲突）
+            const { error } = await window.supabaseClient
+                .from('word_tags')
+                .upsert(inserts, { onConflict: 'word_id, tag_id', ignoreDuplicates: true });
+
+            if (error) throw error;
+        } else if (action === 'remove') {
+            // 批量删除
+            const { error } = await window.supabaseClient
+                .from('word_tags')
+                .delete()
+                .in('word_id', wordIds)
+                .in('tag_id', tagIds);
+
+            if (error) throw error;
+        }
+
+        window.authUtils.showToast?.('批量更新标签成功', 'success');
+        await loadWordList();
+        window.authUtils.hideModal('batchTagsModal');
+    } catch (error) {
+        console.error('Batch update tags error:', error);
+        window.authUtils.showToast?.('批量更新标签失败: ' + error.message, 'error');
+    }
+}
+
+// 批量更新复习状态
+async function batchUpdateReviews(reviewData) {
+    if (selectedWordIds.size === 0) return;
+
+    // 过滤掉空值（不修改的项）
+    const updates = {};
+    Object.keys(reviewData).forEach(key => {
+        if (reviewData[key] !== '') {
+            updates[key] = reviewData[key] === 'empty' ? '' : reviewData[key];
+        }
+    });
+
+    if (Object.keys(updates).length === 0) return;
+
+    try {
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        if (!user) throw new Error('用户未登录');
+
+        const ids = Array.from(selectedWordIds);
+        const { error } = await window.supabaseClient
+            .from('words')
+            .update(updates)
+            .in('id', ids)
+            .eq('user_id', user.id);
+
+        if (error) throw error;
+
+        window.authUtils.showToast?.('批量更新状态成功', 'success');
+        await loadWordList();
+        window.authUtils.hideModal('batchEditModal');
+    } catch (error) {
+        console.error('Batch update reviews error:', error);
+        window.authUtils.showToast?.('批量更新状态失败: ' + error.message, 'error');
+    }
 }
 
 // 打开添加单词模态框
@@ -172,15 +349,15 @@ async function openEditWordModal(wordId) {
     // 填充表单
     const wordInput = document.getElementById('wordInput');
     const meaningInput = document.getElementById('meaningInput');
-    
+
     if (wordInput) wordInput.value = word.word;
     if (meaningInput) meaningInput.value = word.meaning;
 
     // 填充复习记录
     for (let i = 1; i <= 6; i++) {
-        const reviewSelect = document.getElementById(`review${i}`);
+        const reviewSelect = document.getElementById(`review${i} `);
         if (reviewSelect) {
-            reviewSelect.value = word[`review${i}`] || '';
+            reviewSelect.value = word[`review${i} `] || '';
         }
     }
 
@@ -215,9 +392,9 @@ async function loadTagCheckboxes(selectedWordId = null) {
         const div = document.createElement('div');
         div.className = 'tag-checkbox-item';
         div.innerHTML = `
-            <input type="checkbox" id="tag_${tag.tag_id}" value="${tag.tag_id}" ${selectedTagIds.has(tag.tag_id) ? 'checked' : ''}>
-            <label for="tag_${tag.tag_id}">${escapeHtml(tag.tag_name)}</label>
-        `;
+    < input type = "checkbox" id = "tag_${tag.tag_id}" value = "${tag.tag_id}" ${selectedTagIds.has(tag.tag_id) ? 'checked' : ''}>
+        <label for="tag_${tag.tag_id}">${escapeHtml(tag.tag_name)}</label>
+`;
         container.appendChild(div);
     });
 }
@@ -332,7 +509,8 @@ async function deleteWord(wordId) {
         const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) throw new Error('用户未登录');
 
-        if (!confirm('确定要删除这个单词吗？')) {
+        const confirmed = await window.authUtils.showConfirm('确定要删除这个单词吗？', '删除确认');
+        if (!confirmed) {
             return { success: false, cancelled: true };
         }
 
@@ -348,7 +526,7 @@ async function deleteWord(wordId) {
         // 刷新单词列表
         const updatedWords = await getWords();
         displayWords(updatedWords);
-        
+
         window.authUtils.showToast?.('单词删除成功', 'success');
         return { success: true };
     } catch (error) {
@@ -447,9 +625,9 @@ function bindWordEvents() {
             // 获取复习记录
             const reviewData = {};
             for (let i = 1; i <= 6; i++) {
-                const reviewSelect = document.getElementById(`review${i}`);
+                const reviewSelect = document.getElementById(`review${i} `);
                 if (reviewSelect) {
-                    reviewData[`review${i}`] = reviewSelect.value || '';
+                    reviewData[`review${i} `] = reviewSelect.value || '';
                 }
             }
 
@@ -505,12 +683,88 @@ function bindWordEvents() {
             await loadWordList();
         });
     }
+
+    // 批量操作按钮
+    const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+    if (batchDeleteBtn) {
+        batchDeleteBtn.addEventListener('click', batchDelete);
+    }
+
+    const batchTagsBtn = document.getElementById('batchTagsBtn');
+    if (batchTagsBtn) {
+        batchTagsBtn.addEventListener('click', async () => {
+            // 加载标签复选框
+            const container = document.getElementById('batchTagCheckboxes');
+            if (container) {
+                container.innerHTML = '';
+                const tags = await window.tagService.getTags?.() || [];
+                tags.forEach(tag => {
+                    const div = document.createElement('div');
+                    div.className = 'tag-checkbox-item';
+                    div.innerHTML = `
+    < input type = "checkbox" id = "batch_tag_${tag.tag_id}" value = "${tag.tag_id}" >
+        <label for="batch_tag_${tag.tag_id}">${escapeHtml(tag.tag_name)}</label>
+`;
+                    container.appendChild(div);
+                });
+            }
+            window.authUtils.showModal('batchTagsModal');
+        });
+    }
+
+    const batchEditBtn = document.getElementById('batchEditBtn');
+    if (batchEditBtn) {
+        batchEditBtn.addEventListener('click', () => {
+            // 重置选择
+            for (let i = 1; i <= 6; i++) {
+                const select = document.getElementById(`batchReview${i} `);
+                if (select) select.value = '';
+            }
+            window.authUtils.showModal('batchEditModal');
+        });
+    }
+
+    // 批量操作模态框按钮
+    const confirmBatchTagsBtn = document.getElementById('confirmBatchTagsBtn');
+    if (confirmBatchTagsBtn) {
+        confirmBatchTagsBtn.addEventListener('click', () => {
+            const action = document.querySelector('input[name="tagAction"]:checked').value;
+            const tagIds = Array.from(document.querySelectorAll('#batchTagCheckboxes input:checked')).map(cb => parseInt(cb.value));
+            batchUpdateTags(tagIds, action);
+        });
+    }
+
+    const cancelBatchTagsBtn = document.getElementById('cancelBatchTagsBtn');
+    if (cancelBatchTagsBtn) {
+        cancelBatchTagsBtn.addEventListener('click', () => {
+            window.authUtils.hideModal('batchTagsModal');
+        });
+    }
+
+    const confirmBatchEditBtn = document.getElementById('confirmBatchEditBtn');
+    if (confirmBatchEditBtn) {
+        confirmBatchEditBtn.addEventListener('click', () => {
+            const reviewData = {};
+            for (let i = 1; i <= 6; i++) {
+                const select = document.getElementById(`batchReview${i} `);
+                if (select) reviewData[`review${i} `] = select.value;
+            }
+            batchUpdateReviews(reviewData);
+        });
+    }
+
+    const cancelBatchEditBtn = document.getElementById('cancelBatchEditBtn');
+    if (cancelBatchEditBtn) {
+        cancelBatchEditBtn.addEventListener('click', () => {
+            window.authUtils.hideModal('batchEditModal');
+        });
+    }
 }
 
 // 加载单词列表
 async function loadWordList() {
     const words = await getWords();
-    
+
     // 应用排序
     const sortOrder = document.getElementById('sortOrder');
     if (sortOrder) {
@@ -542,6 +796,10 @@ window.wordService = {
     // 添加当前状态变量的访问器
     getCurrentEditingWordId: () => currentEditingWordId,
     getSelectedTagIds: () => selectedTagIds,
-    getCurrentWords: () => currentWords
+    getCurrentWords: () => currentWords,
+    // 批量操作
+    batchDelete,
+    batchUpdateTags,
+    batchUpdateReviews
 };
 

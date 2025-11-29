@@ -468,3 +468,60 @@ body {
     }
 }
 
+
+/* 批量操作工具栏 */
+.batch-toolbar {
+    background-color: #e8f4f8;
+    padding: 1rem 2rem;
+    margin: 0 2rem 1rem;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #bce8f1;
+    position: sticky;
+    top: 1rem;
+    z-index: 900;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.batch-info {
+    font-weight: 600;
+    color: #31708f;
+}
+
+.batch-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+/* 复选框列 */
+.checkbox-col {
+    width: 40px;
+    text-align: center;
+}
+
+.word-checkbox {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+/* 批量标签模态框 */
+.radio-group {
+    display: flex;
+    gap: 2rem;
+    margin-top: 0.5rem;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-weight: normal;
+}
+
+.radio-group input[type="radio"] {
+    cursor: pointer;
+}

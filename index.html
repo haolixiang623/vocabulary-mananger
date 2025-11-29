@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
     <!-- SheetJS Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
+
 <body>
     <!-- 登录模态框 - 默认显示 -->
     <div id="loginModal" class="modal show">
@@ -86,6 +88,18 @@
                 <button id="manageTagsBtn" class="btn btn-info">管理标签</button>
                 <button id="exportExcelBtn" class="btn btn-warning">导出Excel</button>
                 <button id="importExcelBtn" class="btn btn-info">导入Excel</button>
+            </div>
+        </div>
+
+        <!-- 批量操作工具栏 -->
+        <div id="batchToolbar" class="batch-toolbar hidden">
+            <div class="batch-info">
+                已选择 <span id="selectedCount">0</span> 项
+            </div>
+            <div class="batch-actions">
+                <button id="batchDeleteBtn" class="btn btn-danger">批量删除</button>
+                <button id="batchTagsBtn" class="btn btn-info">批量标签</button>
+                <button id="batchEditBtn" class="btn btn-warning">批量编辑</button>
             </div>
         </div>
 
@@ -287,7 +301,7 @@
     <!-- 确保Supabase先加载完成，再加载模块 -->
     <script>
         // 等待Supabase加载完成
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             if (!window.supabase) {
                 console.error('Supabase未加载，请检查网络连接或CDN链接');
             }
@@ -305,5 +319,5 @@
     <script src="js/export-service.js"></script>
     <script src="js/app.js"></script>
 </body>
-</html>
 
+</html>

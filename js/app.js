@@ -16,18 +16,20 @@ async function initApp() {
         if (window.authUtils?.bindAuthEvents) {
             window.authUtils.bindAuthEvents();
         }
-        
+
         // 绑定单词相关事件
         if (window.wordService?.bindWordEvents) {
             window.wordService.bindWordEvents();
         }
-        
+
         // 绑定标签相关事件
-        // bindTagEvents(); // 将在后续修改
-        
+        if (window.tagService?.bindTagEvents) {
+            window.tagService.bindTagEvents();
+        }
+
         // 绑定其他事件
         bindOtherEvents();
-        
+
         // 如果已登录，加载数据
         if (window.supabaseClient && window.supabaseClient.auth && window.supabaseClient.auth.getSession) {
             const result = await window.supabaseClient.auth.getSession();
@@ -58,11 +60,11 @@ async function loadTagSelector() {
         tags = await window.tagService.getTags();
     }
     const container = document.getElementById('tagSelector');
-    
+
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
+
     tags.forEach(tag => {
         const div = document.createElement('div');
         div.className = 'tag-checkbox-item';
@@ -71,7 +73,7 @@ async function loadTagSelector() {
             <label for="search_tag_${tag.tag_id}">${tag.tag_name}</label>
         `;
         container.appendChild(div);
-        
+
         // 绑定复选框事件
         const checkbox = div.querySelector('input[type="checkbox"]');
         checkbox.addEventListener('change', (e) => {
@@ -94,7 +96,7 @@ function bindOtherEvents() {
             window.tagService.showTagModal();
         });
     }
-    
+
     // 导出Excel按钮
     const exportExcelBtn = document.getElementById('exportExcelBtn');
     if (exportExcelBtn) {
@@ -104,7 +106,7 @@ function bindOtherEvents() {
             }
         });
     }
-    
+
     // 导入Excel相关功能
     const importExcelBtn = document.getElementById('importExcelBtn');
     const importModal = document.getElementById('importModal');
@@ -114,20 +116,20 @@ function bindOtherEvents() {
     const confirmImportBtn = document.getElementById('confirmImportBtn');
     const cancelImportBtn = document.getElementById('cancelImportBtn');
     const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
-    
+
     // 打开导入模态框
     if (importExcelBtn && importModal) {
         importExcelBtn.addEventListener('click', () => {
             importModal.classList.add('show');
         });
     }
-    
+
     // 选择文件按钮
     if (selectFileBtn && excelFileInput && fileName && confirmImportBtn) {
         selectFileBtn.addEventListener('click', () => {
             excelFileInput.click();
         });
-        
+
         excelFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -139,7 +141,7 @@ function bindOtherEvents() {
             }
         });
     }
-    
+
     // 确认导入按钮
     if (confirmImportBtn && excelFileInput && importModal) {
         confirmImportBtn.addEventListener('click', async () => {
@@ -164,7 +166,7 @@ function bindOtherEvents() {
             }
         });
     }
-    
+
     // 取消导入按钮
     if (cancelImportBtn && importModal && excelFileInput && fileName) {
         cancelImportBtn.addEventListener('click', () => {
@@ -177,7 +179,7 @@ function bindOtherEvents() {
             }
         });
     }
-    
+
     // 下载模板按钮
     if (downloadTemplateBtn) {
         downloadTemplateBtn.addEventListener('click', () => {
@@ -196,7 +198,7 @@ function bindOtherEvents() {
             }
         });
     }
-    
+
     // 搜索按钮
     const searchBtn = document.getElementById('searchBtn');
     if (searchBtn) {
@@ -204,7 +206,7 @@ function bindOtherEvents() {
             await performSearch();
         });
     }
-    
+
     // 清空筛选按钮
     const clearSearchBtn = document.getElementById('clearSearchBtn');
     if (clearSearchBtn) {
@@ -222,7 +224,7 @@ function bindOtherEvents() {
             }
         });
     }
-    
+
     // 模态框外部点击关闭
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
@@ -236,7 +238,7 @@ function bindOtherEvents() {
 // 执行搜索
 async function performSearch() {
     const tagIds = Array.from(selectedSearchTags);
-    
+
     if (tagIds.length === 0) {
         if (window.authUtils?.showToast) {
             window.authUtils.showToast('请至少选择一个标签', 'info');
@@ -246,10 +248,10 @@ async function performSearch() {
         }
         return;
     }
-    
+
     if (window.wordService && window.wordService.searchWordsByTags) {
         const words = await window.wordService.searchWordsByTags(tagIds);
-        
+
         // 应用排序
         const sortOrder = document.getElementById('sortOrder');
         if (sortOrder) {
@@ -260,7 +262,7 @@ async function performSearch() {
                 words.sort((a, b) => a.id - b.id);
             }
         }
-        
+
         if (window.wordService && window.wordService.displayWords) {
             window.wordService.displayWords(words);
         }
@@ -271,63 +273,25 @@ async function performSearch() {
 }
 
 // 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 显示登录模态框
     const loginModal = document.getElementById('loginModal');
     if (loginModal) {
         loginModal.classList.add('show');
     }
-    
+
     // 隐藏主应用容器
     const appContainer = document.getElementById('appContainer');
     if (appContainer) {
         appContainer.classList.add('hidden');
     }
-    
+
     // 执行初始化，让auth模块正确处理登录状态
-    setTimeout(function() {
+    setTimeout(function () {
         // 使用async函数包装所有初始化逻辑
-        (async function() {
-            try {
-                if (window.authUtils && window.authUtils.initAuth) {
-                    await window.authUtils.initAuth();
-                }
-                if (window.authUtils && window.authUtils.bindAuthEvents) {
-                    window.authUtils.bindAuthEvents();
-                }
-                
-                // 绑定其他事件
-                bindOtherEvents();
-                
-                // 如果已登录，加载数据
-                if (window.supabaseClient && window.supabaseClient.auth && window.supabaseClient.auth.getSession) {
-                    const result = await window.supabaseClient.auth.getSession();
-                    if (result.data && result.data.session) {
-                        // 绑定单词相关事件
-                        if (window.wordService?.bindWordEvents) {
-                            window.wordService.bindWordEvents();
-                        }
-                        // 加载初始数据
-                        await loadInitialData();
-                    }
-                }
-            } catch (error) {
-                console.error('应用初始化失败:', error);
-                // 错误处理
-                if (window.authUtils && window.authUtils.showToast) {
-                    window.authUtils.showToast('应用初始化失败，请刷新页面重试', 'error');
-                } else {
-                    // 显示错误提示
-                    const errorDiv = document.createElement('div');
-                    errorDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10000;';
-                    errorDiv.innerHTML = `
-                        <h2 style="color: #e74c3c; margin-bottom: 1rem;">应用加载错误</h2>
-                        <p>应用初始化失败，请刷新页面重试。</p>
-                        <p>错误详情: ${error.message}</p>
-                    `;
-                    document.body.appendChild(errorDiv);
-                }
-            }
+        // 使用async函数包装所有初始化逻辑
+        (async function () {
+            await initApp();
         })();
     }, 100);
 });
