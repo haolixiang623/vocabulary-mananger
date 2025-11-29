@@ -577,3 +577,232 @@ body {
         padding: 1rem;
     }
 }
+
+/* Dictation Mode Styles */
+.dictation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.progress-container {
+    flex: 1;
+    margin-right: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.progress-bar-bg {
+    flex: 1;
+    height: 8px;
+    background-color: var(--bg-body);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: var(--primary-color);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.score-container {
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.dictation-body {
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.streak-badge {
+    display: inline-block;
+    background-color: var(--warning-color);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.4);
+}
+
+.meaning-display h3 {
+    font-size: 2rem;
+    color: var(--text-main);
+    margin-bottom: 2rem;
+}
+
+.input-area input {
+    font-size: 1.5rem;
+    text-align: center;
+    padding: 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 400px;
+    transition: all 0.2s;
+}
+
+.input-area input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.dictation-feedback {
+    height: 2rem;
+    margin: 1rem 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.text-success {
+    color: var(--success-color);
+}
+
+.text-danger {
+    color: var(--danger-color);
+}
+
+.dictation-actions {
+    margin-top: 2rem;
+}
+
+.btn-large {
+    padding: 0.75rem 3rem;
+    font-size: 1.1rem;
+}
+
+/* Animations */
+.shake-animation {
+    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+}
+
+@keyframes shake {
+
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}
+
+.pulse-animation {
+    animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.pop-in {
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.correct-input {
+    border-color: var(--success-color) !important;
+    background-color: #ecfdf5 !important;
+}
+
+.error-input {
+    border-color: var(--danger-color) !important;
+    background-color: #fef2f2 !important;
+}
+
+/* Results View */
+.dictation-results {
+    text-align: center;
+}
+
+.final-score {
+    font-size: 4rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    margin: 1rem 0;
+}
+
+.mistake-list-container {
+    margin: 2rem 0;
+    text-align: left;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: var(--bg-body);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+}
+
+.mistake-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.mistake-item:last-child {
+    border-bottom: none;
+}
+
+.mistake-word {
+    font-weight: 700;
+    color: var(--danger-color);
+    margin-right: 0.5rem;
+}
+
+.mistake-meaning {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.mistake-input .strike {
+    text-decoration: line-through;
+    color: var(--text-light);
+}
+
+.results-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}

@@ -114,6 +114,23 @@ function bindOtherEvents() {
         });
     }
 
+    // 开始默写按钮
+    const startDictationBtn = document.getElementById('startDictationBtn');
+    if (startDictationBtn) {
+        startDictationBtn.addEventListener('click', () => {
+            if (window.dictationService && window.dictationService.start) {
+                let selectedIds = [];
+                if (window.wordService && window.wordService.getSelectedWordIds) {
+                    const idsSet = window.wordService.getSelectedWordIds();
+                    if (idsSet && idsSet.size > 0) {
+                        selectedIds = Array.from(idsSet);
+                    }
+                }
+                window.dictationService.start(selectedIds);
+            }
+        });
+    }
+
     // 导入Excel相关功能
     const importExcelBtn = document.getElementById('importExcelBtn');
     const importModal = document.getElementById('importModal');
