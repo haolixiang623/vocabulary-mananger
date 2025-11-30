@@ -104,6 +104,31 @@ window.dictationService = (function () {
         elements.feedbackArea.className = 'dictation-feedback';
     }
 
+    // 播放发音
+    function playPronunciation() {
+        if (state.currentIndex >= state.words.length) return;
+
+        const word = state.words[state.currentIndex].word;
+
+        // 使用 Web Speech API
+        if ('speechSynthesis' in window) {
+            // 取消之前的语音
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(word);
+            utterance.lang = 'en-US'; // 设置为英语
+            utterance.rate = 0.8; // 语速稍慢一点
+            utterance.pitch = 1; // 音调
+
+            window.speechSynthesis.speak(utterance);
+        } else {
+            console.warn('浏览器不支持语音合成');
+            if (window.authUtils?.showToast) {
+                window.authUtils.showToast('您的浏览器不支持语音功能', 'info');
+            }
+        }
+    }
+
     // 更新 UI
     function updateUI() {
         const total = state.words.length;
@@ -276,6 +301,12 @@ window.dictationService = (function () {
                     submitAnswer();
                 }
             });
+        }
+
+        // 播放发音按钮
+        const playBtn = document.getElementById('playPronunciationBtn');
+        if (playBtn) {
+            playBtn.addEventListener('click', playPronunciation);
         }
 
         // 重试按钮

@@ -447,6 +447,10 @@ body {
     max-width: 400px;
 }
 
+.modal-large {
+    max-width: 800px;
+}
+
 .modal-content h2 {
     margin-bottom: 1.5rem;
     color: var(--text-main);
@@ -805,4 +809,16 @@ body {
     justify-content: center;
     gap: 1rem;
     margin-top: 2rem;
+}
+
+.perfect-score {
+    text-align: center;
+    padding: 2rem;
+    color: var(--success-color);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.btn-icon {
+    margin-top: 1rem;
 }

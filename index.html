@@ -86,6 +86,7 @@
             <div class="action-buttons">
                 <button id="addWordBtn" class="btn btn-success">添加单词</button>
                 <button id="manageTagsBtn" class="btn btn-info">管理标签</button>
+                <button id="startDictationBtn" class="btn btn-primary">📝 开始默写</button>
                 <button id="exportExcelBtn" class="btn btn-warning">导出Excel</button>
                 <button id="importExcelBtn" class="btn btn-info">导入Excel</button>
             </div>
@@ -262,6 +263,73 @@
     <!-- Toast提示 -->
     <div id="toast" class="toast hidden"></div>
 
+    <!-- 默写模态框 -->
+    <div id="dictationModal" class="modal">
+        <div class="modal-content modal-large">
+            <!-- 问题视图 -->
+            <div id="dictationQuestion" class="dictation-question">
+                <div class="dictation-header">
+                    <div class="progress-container">
+                        <div class="progress-bar-bg">
+                            <div id="dictationProgressBar" class="progress-bar-fill"></div>
+                        </div>
+                        <span id="dictationProgressText" class="progress-text">1 / 10</span>
+                    </div>
+                    <div class="score-container">
+                        得分: <span id="dictationScore">0</span>
+                    </div>
+                </div>
+
+                <div class="dictation-body">
+                    <!-- 连对提示 -->
+                    <div id="dictationStreak" class="streak-badge hidden">
+                        🔥 <span id="streakCount">0</span> 连对!
+                    </div>
+
+                    <!-- 中文释义展示 -->
+                    <div class="meaning-display">
+                        <h3 id="dictationMeaning">中文释义</h3>
+                        <button id="playPronunciationBtn" class="btn btn-secondary btn-icon" title="播放发音">
+                            🔊 播放发音
+                        </button>
+                    </div>
+
+                    <!-- 输入区 -->
+                    <div class="input-area">
+                        <input type="text" id="dictationInput" placeholder="输入单词拼写..." autocomplete="off"
+                            spellcheck="false">
+                    </div>
+
+                    <!-- 反馈区 -->
+                    <div id="dictationFeedback" class="dictation-feedback"></div>
+
+                    <!-- 提交按钮 -->
+                    <div class="dictation-actions">
+                        <button id="dictationSubmitBtn" class="btn btn-primary btn-large">提交</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 结果视图 -->
+            <div id="dictationResults" class="dictation-results hidden">
+                <h2>默写完成!</h2>
+                <div class="final-score" id="dictationFinalScore">100%</div>
+                <p style="color: var(--text-secondary); margin-bottom: 2rem;">恭喜你完成了本次默写！</p>
+
+                <!-- 错误列表 -->
+                <div class="mistake-list-container">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-main);">错误回顾</h4>
+                    <div id="dictationMistakeList"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button id="dictationRetryBtn" class="btn btn-warning">重做错题</button>
+                    <button id="dictationCloseBtn" class="btn btn-secondary">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 导入Excel模态框 -->
     <div id="importModal" class="modal">
         <div class="modal-content">
@@ -305,6 +373,7 @@
     <script src="js/tag-service.js"></script>
     <script src="js/word-service.js"></script>
     <script src="js/export-service.js"></script>
+    <script src="js/dictation-service.js"></script>
     <script src="js/app.js"></script>
 </body>
 
